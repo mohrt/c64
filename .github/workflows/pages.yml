@@ -25,6 +25,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run fetch:roms
+      - run: npm run fetch:games
       - name: Add site assets
         env:
           SITE_ASSETS: ${{ secrets.SITE_ASSETS }}

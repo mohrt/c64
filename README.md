@@ -13,13 +13,14 @@ No ROM or game files are included in this repository.
 - **Open ROMs** (MEGA65, LGPL) are downloaded with `npm run fetch:roms`. They boot to BASIC.
 - **System ROMs**: for the full machine, download the C64 system ROMs and the 1541 drive ROM yourself and place them in `public/roms/system/` as `basic.rom`, `kernal.rom`, `chargen.rom` and `dos1541.rom`. When present they are used instead of the Open ROMs, and the 1541 ROM enables accurate drive emulation (needed for most games with fast loaders).
 - **Games**: download disk, tape or cartridge images yourself and drop them onto the page. They stay in your browser and are never uploaded.
-- **Offering games on your own site**: put freely distributable games in `public/games/` with an `index.json` such as `{ "games": [{ "title": "Some Game", "file": "some-game.d64" }] }`, and they appear in a "Free games" picker.
+- **Free games**: `npm run fetch:games` downloads the freely distributable games listed in `scripts/games-catalog.json` (each with its credit, licence and checksum) into `public/games/`, where they appear in a "Free games" picker. To offer other games, list them in `public/games/index.json` the same way: `{ "games": [{ "title": "Some Game", "file": "some-game.d64" }] }`.
 
 ## Development
 
 ```sh
 npm install
 npm run fetch:roms      # Open ROMs into public/roms/
+npm run fetch:games     # optional: free games into public/games/
 npm run dev             # http://localhost:5173
 npm test                # tests needing ROMs or disk images skip when they're missing
 npm run fetch:dormann   # optional: 6502 functional test binary for the CPU test

@@ -377,7 +377,7 @@ main {
 }
 
 .zip-files:not([hidden]),
-.bundled-games:not([hidden]) {
+.bundled-games-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -386,6 +386,16 @@ main {
   margin-top: 0.75rem !important;
   font-size: 0.85rem;
   color: #aaa;
+}
+
+.game-info {
+  margin-top: 0.35rem !important;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.game-info a {
+  color: #a9a2ee;
 }
 
 .zip-buttons {

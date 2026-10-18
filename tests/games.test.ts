@@ -22,6 +22,33 @@ describe('bundled games manifest', () => {
     expect(parseGameManifest({ games: [null, { title: 'No file' }, { title: '', file: 'x.d64' }] })).toEqual([]);
   });
 
+  it('keeps credits and safe links', () => {
+    const [game] = parseGameManifest({
+      games: [
+        {
+          title: 'Game',
+          file: 'game.prg',
+          credit: 'Someone',
+          license: 'MIT licence',
+          licenseUrl: 'games/game.prg.license.txt',
+          sourceUrl: 'javascript:alert(1)',
+          hint: 'Joystick in port 1.',
+        },
+      ],
+    });
+    expect(game).toEqual({
+      title: 'Game',
+      file: 'game.prg',
+      credit: 'Someone',
+      license: 'MIT licence',
+      licenseUrl: 'games/game.prg.license.txt',
+      hint: 'Joystick in port 1.',
+    });
+    expect(parseGameManifest({ games: [{ title: 'G', file: 'g.prg', licenseUrl: 'http://x' }] })[0].licenseUrl).toBe(
+      undefined,
+    );
+  });
+
   it('only accepts paths inside the games folder', () => {
     const files = ['../secret.d64', '/etc/passwd', 'https://example.com/x.d64', 'a/../../b.d64', '.hidden.d64'];
     expect(parseGameManifest({ games: files.map((file) => ({ title: 'Bad', file })) })).toEqual([]);

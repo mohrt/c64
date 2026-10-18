@@ -1,0 +1,186 @@
+{
+  "games": [
+    {
+      "title": "Ancipital",
+      "file": "ancipital.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Ancipital.prg",
+      "sha256": "dd01b1d0fe99d598eaeb44a3d73590e8d429198b6e4f5614dc8f2d69dfd612c7",
+      "credit": "Jeff Minter (Llamasoft), 1984",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "Attack of the Mutant Camels",
+      "file": "attack-of-the-mutant-camels.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Attack%20of%20the%20Mutant%20Camels.prg",
+      "sha256": "ce2a6f6fca6f8564f89c70a1111a4ff659617126b67e6d770e4d41702e1bc56e",
+      "credit": "Jeff Minter (Llamasoft), 1983",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 1."
+    },
+    {
+      "title": "Batalyx",
+      "file": "batalyx.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Batalyx.prg",
+      "sha256": "1b7b37b4ee5efc69ca6f05b9010070675482c16a104b4ab6e331a62bbd5468d3",
+      "credit": "Jeff Minter (Llamasoft), 1985",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Keys 1 to 6 pick one of the six subgames."
+    },
+    {
+      "title": "Gridrunner",
+      "file": "gridrunner.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Gridrunner.prg",
+      "sha256": "44afda486d22b0c4f614e68416cc59e56010efaefe9668e117d05015f28ab6e7",
+      "credit": "Jeff Minter (Llamasoft), 1983",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 1."
+    },
+    {
+      "title": "Hellgate",
+      "file": "hellgate.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Hellgate.prg",
+      "sha256": "7996ae2a5af2a26b1e705f88e7a62de21594c3a62f41743dcc9c8b80566e0ac4",
+      "credit": "Jeff Minter (Llamasoft), 1984",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "Hover Bovver",
+      "file": "hover-bovver.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Hover%20Bovver.prg",
+      "sha256": "b9babcd1619d9c662ad3f3a7ea44f7169f090cfb967761c6f992fb342da11f1b",
+      "credit": "Jeff Minter (Llamasoft), 1983",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2. F1, F3 and F5 set options; F7 starts."
+    },
+    {
+      "title": "Laser Zone",
+      "file": "laser-zone.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Laser%20Zone.prg",
+      "sha256": "ca749b2c9f09ded264cb5c6a3733547a5cc011c6d650bc1c0796b23848f94840",
+      "credit": "Jeff Minter (Llamasoft), 1983",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "F1 to F7 set options; fire starts."
+    },
+    {
+      "title": "Mama Llama",
+      "file": "mama-llama.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Mama%20Llama.prg",
+      "sha256": "28756c1cc6c8089915a394bfae3891a7a73d5978393ebc3307754a39ba65232d",
+      "credit": "Jeff Minter (Llamasoft), 1985",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "Matrix: Gridrunner 2",
+      "file": "matrix.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Matrix.prg",
+      "sha256": "8a899bedc64b3bd1b06a5311a1576892bf9caf0704514d2930fbdff6130719d8",
+      "credit": "Jeff Minter (Llamasoft), 1983",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 1."
+    },
+    {
+      "title": "Metagalactic Llamas: Battle at the Edge of Time",
+      "file": "metagalactic-llamas.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Metagalactic%20Llamas.prg",
+      "sha256": "973026a99f5907596179efc97bcc01997c565321d6d4387b4513660ad8ccfcee",
+      "credit": "Jeff Minter (Llamasoft), converted by Aaron Liddiment, 1984",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2. F1 starts."
+    },
+    {
+      "title": "Revenge of the Mutant Camels (2021 edition)",
+      "file": "revenge-of-the-mutant-camels-2021.d64",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/rmc2021.d64.gz",
+      "gzip": true,
+      "sha256": "e4cc65f20fc1d50de9547dfe1ad0810c9246202048576299ddd5741da908190c",
+      "credit": "Jeff Minter (Llamasoft)",
+      "license": "Distributed with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/index.html",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "Sheep in Space",
+      "file": "sheep-in-space.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Sheep%20in%20Space.prg",
+      "sha256": "12a890b9140c8e47001399e5690754eb93fc0e7d76272949ccd97a04c175574e",
+      "credit": "Jeff Minter (Llamasoft), 1984",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "F1, F3 and F5 set options; fire starts."
+    },
+    {
+      "title": "Synchrogoat",
+      "file": "synchrogoat.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Synchrogoat.prg",
+      "sha256": "3620723ecf19f3dec05dd86b8df77c042be0848edd21fbf354104cf9804f9d02",
+      "credit": "Jeff Minter (Llamasoft)",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt"
+    },
+    {
+      "title": "Voidrunner",
+      "file": "voidrunner.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/Voidrunner.prg",
+      "sha256": "965fe861408d3b022c2ca4fdf728ccbc66198e57eff0d7a2e80f726c011ae192",
+      "credit": "Jeff Minter (Llamasoft), 1987",
+      "license": "Free for emulator use, with Jeff Minter's permission",
+      "licenseUrl": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/Llamasoft/readme.txt",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "Retaliate (Community Edition)",
+      "file": "retaliate-ce.d64",
+      "url": "https://github.com/lvcabral/retaliate64/releases/download/v1.0.0/retaliatece.d64",
+      "sha256": "fc988dea8c0dbd35fe84476694b4c0f112da32f48d8e7262f0762a37fb41446b",
+      "credit": "Marcelo Lv Cabral, 2021",
+      "license": "MIT licence",
+      "licenseFile": "https://raw.githubusercontent.com/lvcabral/retaliate64/master/LICENSE",
+      "sourceUrl": "https://github.com/lvcabral/retaliate64",
+      "hint": "Joystick in port 2; fire on the title screen loads the game. Saves high scores to the disk."
+    },
+    {
+      "title": "FREAX",
+      "file": "freax.prg",
+      "url": "https://www.zimmers.net/anonftp/pub/cbm/c64/games/freax-c64.prg",
+      "sha256": "fc1aaa090ebb782071d2026a22cc49e94498f8610cdae966c61313e7a0f4ff5e",
+      "credit": "A. Millett, 2024",
+      "license": "GNU GPL v3",
+      "licenseFile": "https://raw.githubusercontent.com/orac81/FREAX/main/LICENSE",
+      "sourceUrl": "https://github.com/orac81/FREAX",
+      "hint": "Played on the keyboard: Space starts, I and P move, Shift fires."
+    },
+    {
+      "title": "Sir Ababol",
+      "file": "sir-ababol.d64",
+      "url": "https://csdb.dk/release/download.php?id=142292",
+      "sha256": "b542e98dcdae309b243c43e4a0415769e0a8ab8ff9706d3c1839bd1295695545",
+      "credit": "The Mojon Twins, C64 version by Woodmaster, 2012",
+      "license": "CC BY-NC-SA 3.0",
+      "licenseUrl": "https://www.mojontwins.com/licencia-mt/",
+      "hint": "Joystick in port 2."
+    },
+    {
+      "title": "UWOL: Quest for Money",
+      "file": "uwol.d64",
+      "url": "https://csdb.dk/release/download.php?id=117629",
+      "sha256": "d4ef44346b2e3a40608f302a3912d9cc87498671c8f665938c3734865a1acbc5",
+      "credit": "The Mojon Twins, C64 version by Woodmaster, 2010",
+      "license": "CC BY-NC-SA 3.0",
+      "licenseUrl": "https://www.mojontwins.com/licencia-mt/",
+      "hint": "Joystick in port 2."
+    }
+  ]
+}

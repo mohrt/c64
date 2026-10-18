@@ -3,11 +3,19 @@
  *
  *   { "games": [{ "title": "Some Game", "file": "some-game.d64" }] }
  *
- * `file` is relative to `games/`. Without the manifest no games are offered.
+ * `file` is relative to `games/`. Entries may also give a `credit`, a `license`
+ * with a `licenseUrl`, a `sourceUrl` and a short `hint` on how to play. Without
+ * the manifest no games are offered.
  */
 export interface BundledGame {
   title: string;
   file: string;
+  credit?: string;
+  license?: string;
+  /** An https:// address, or a file in `games/` (given as `games/...`). */
+  licenseUrl?: string;
+  sourceUrl?: string;
+  hint?: string;
 }
 
 const GAMES_DIR = 'games/';
@@ -17,14 +25,35 @@ function isSafeGamePath(file: string): boolean {
   return /^[\w][\w .()+-]*(\/[\w][\w .()+-]*)*$/.test(file) && !file.split('/').includes('..');
 }
 
+const optionalText = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : undefined);
+
+/** Links may go to https:// sites or to files in the games folder. */
+function optionalLink(value: unknown): string | undefined {
+  const link = optionalText(value);
+  if (!link) return undefined;
+  if (link.startsWith('https://')) return link;
+  return link.startsWith(GAMES_DIR) && isSafeGamePath(link.slice(GAMES_DIR.length)) ? link : undefined;
+}
+
 /** The well-formed entries of a manifest; anything else is ignored. */
 export function parseGameManifest(json: unknown): BundledGame[] {
   const games = (json as { games?: unknown } | null)?.games;
   if (!Array.isArray(games)) return [];
   return games.flatMap((entry: unknown) => {
-    const { title, file } = (entry ?? {}) as Record<string, unknown>;
-    if (typeof title !== 'string' || !title.trim() || typeof file !== 'string' || !isSafeGamePath(file)) return [];
-    return [{ title: title.trim(), file }];
+    const fields = (entry ?? {}) as Record<string, unknown>;
+    const title = optionalText(fields.title);
+    const file = fields.file;
+    if (!title || typeof file !== 'string' || !isSafeGamePath(file)) return [];
+    const game: BundledGame = { title, file };
+    const extras = {
+      credit: optionalText(fields.credit),
+      license: optionalText(fields.license),
+      licenseUrl: optionalLink(fields.licenseUrl),
+      sourceUrl: optionalLink(fields.sourceUrl),
+      hint: optionalText(fields.hint),
+    };
+    for (const [key, value] of Object.entries(extras)) if (value) Object.assign(game, { [key]: value });
+    return [game];
   });
 }
 

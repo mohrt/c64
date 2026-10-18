@@ -10,6 +10,16 @@ export interface InsertedMedia {
   fileLabel?: string;
 }
 
+/** A game the site offers, with what to show about it. */
+export interface GameOption {
+  title: string;
+  credit?: string;
+  license?: string;
+  licenseHref?: string;
+  sourceHref?: string;
+  hint?: string;
+}
+
 export interface SaveDiskOption {
   id: string;
   name: string;
@@ -68,6 +78,8 @@ export class DiskPanel {
   private readonly zipButtons: HTMLElement;
   private readonly bundledGames: HTMLElement;
   private readonly gameSelect: HTMLSelectElement;
+  private readonly gameInfo: HTMLElement;
+  private games: GameOption[] = [];
   /** dragenter/dragleave fire for every child element, so count them. */
   private dragDepth = 0;
 
@@ -94,6 +106,8 @@ export class DiskPanel {
     this.zipButtons = requireChild(root, '.zip-buttons');
     this.bundledGames = requireChild(root, '.bundled-games');
     this.gameSelect = requireChild(root, 'select[name="bundled-game"]');
+    this.gameInfo = requireChild(root, '.game-info');
+    this.gameSelect.addEventListener('change', () => this.showGameInfo());
     this.onClick('play-game', async () => {
       if (this.gameSelect.value) await this.insert(await this.callbacks.onGame(Number(this.gameSelect.value)));
     });
@@ -211,16 +225,37 @@ export class DiskPanel {
   }
 
   /** Lists the games the site offers (an empty list hides the row). */
-  setGames(titles: string[]): void {
+  setGames(games: GameOption[]): void {
+    this.games = games;
     this.gameSelect.replaceChildren(
-      ...titles.map((title, index) => {
+      ...games.map((game, index) => {
         const option = document.createElement('option');
         option.value = String(index);
-        option.textContent = title;
+        option.textContent = game.title;
         return option;
       }),
     );
-    this.bundledGames.hidden = titles.length === 0;
+    this.bundledGames.hidden = games.length === 0;
+    this.showGameInfo();
+  }
+
+  /** Credits, licence and a playing hint for the selected game. */
+  private showGameInfo(): void {
+    const game = this.games[Number(this.gameSelect.value)];
+    const parts: (string | Node)[] = [];
+    const link = (text: string, href: string) => {
+      const anchor = document.createElement('a');
+      anchor.href = href;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener';
+      anchor.textContent = text;
+      return anchor;
+    };
+    if (game?.credit) parts.push(`By ${game.credit}. `);
+    if (game?.license) parts.push(game.licenseHref ? link(game.license, game.licenseHref) : game.license, '. ');
+    if (game?.sourceHref) parts.push(link('Source code', game.sourceHref), '. ');
+    if (game?.hint) parts.push(game.hint);
+    this.gameInfo.replaceChildren(...parts);
   }
 
   /** Offers the other usable files from a dropped zip as buttons (an empty list hides the row). */

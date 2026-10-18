@@ -381,7 +381,10 @@ async function main(): Promise<void> {
     diskPanel.configureDrive(c64.driveMode, c64.drive1541 !== null);
     void loadGameManifest(import.meta.env.BASE_URL).then((games) => {
       bundledGames = games;
-      diskPanel.setGames(games.map((game) => game.title));
+      const href = (link?: string) => (link?.startsWith('games/') ? `${import.meta.env.BASE_URL}${link}` : link);
+      diskPanel.setGames(
+        games.map((game) => ({ ...game, licenseHref: href(game.licenseUrl), sourceHref: href(game.sourceUrl) })),
+      );
     });
 
     const refreshStates = async () => toolbar.setStates(await saveStates.list());

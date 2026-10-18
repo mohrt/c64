@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fetch:roms": "node scripts/fetch-roms.mjs",
+    "fetch:games": "node scripts/fetch-games.mjs",
     "fetch:dormann": "node scripts/fetch-dormann.mjs"
   },
   "devDependencies": {
