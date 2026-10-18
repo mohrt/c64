@@ -4,6 +4,13 @@ export type DriveModeChoice = 'accurate' | 'fast';
 export interface InsertedMedia {
   kind: 'disk' | 'cartridge';
   name: string;
+  /** For disks: whether games' saves from earlier sessions were re-applied. */
+  hasSavedChanges?: boolean;
+}
+
+export interface SaveDiskOption {
+  id: string;
+  name: string;
 }
 
 export interface DiskPanelCallbacks {
@@ -16,6 +23,14 @@ export interface DiskPanelCallbacks {
   onDriveMode(mode: DriveModeChoice): void;
   onWarp(enabled: boolean): void;
   onAutostart(enabled: boolean): void;
+  /** Forgets the games saved to the inserted disk. */
+  onRevert(): Promise<void>;
+  /** Creates and inserts a blank save disk; returns its name. */
+  onNewSaveDisk(): Promise<string>;
+  /** Inserts a save disk; returns its name. */
+  onInsertSaveDisk(id: string): Promise<string>;
+  onExportSaveDisk(id: string): Promise<void>;
+  onDeleteSaveDisk(id: string): Promise<void>;
   /** Gives keyboard focus back to the emulator screen. */
   focusScreen(): void;
 }
@@ -43,6 +58,10 @@ export class DiskPanel {
   private readonly autostart: HTMLInputElement;
   private readonly cartSlot: HTMLElement;
   private readonly cartName: HTMLElement;
+  private readonly savedMarker: HTMLElement;
+  private readonly revertButton: HTMLButtonElement;
+  private readonly saveDiskList: HTMLElement;
+  private readonly saveDiskSelect: HTMLSelectElement;
   /** dragenter/dragleave fire for every child element, so count them. */
   private dragDepth = 0;
 
@@ -61,6 +80,29 @@ export class DiskPanel {
     this.autostart = requireChild(root, 'input[name="autostart"]');
     this.cartSlot = requireChild(root, '.cart-slot');
     this.cartName = requireChild(root, '.cart-name');
+    this.savedMarker = requireChild(root, '.disk-saved');
+    this.revertButton = requireChild(root, '[data-action="revert"]');
+    this.saveDiskList = requireChild(root, '.save-disk-list');
+    this.saveDiskSelect = requireChild(root, 'select[name="save-disk"]');
+
+    const selectedSaveDisk = () => this.saveDiskSelect.value;
+    this.onClick('revert', async () => {
+      if (!confirm('Forget the games saved to this disk?')) return;
+      await this.callbacks.onRevert();
+      this.setSavedChanges(false);
+    });
+    this.onClick('new-save-disk', async () => this.showDisk(await this.callbacks.onNewSaveDisk(), 'save disk'));
+    this.onClick('insert-save-disk', async () => {
+      if (selectedSaveDisk()) this.showDisk(await this.callbacks.onInsertSaveDisk(selectedSaveDisk()), 'save disk');
+    });
+    this.onClick('export-save-disk', async () => {
+      if (selectedSaveDisk()) await this.callbacks.onExportSaveDisk(selectedSaveDisk());
+    });
+    this.onClick('delete-save-disk', async () => {
+      const option = this.saveDiskSelect.selectedOptions[0];
+      if (!option || !confirm(`Delete ${option.textContent}? Games saved on it will be lost.`)) return;
+      await this.callbacks.onDeleteSaveDisk(option.value);
+    });
 
     this.autostart.addEventListener('change', () => {
       this.callbacks.onAutostart(this.autostart.checked);
@@ -125,6 +167,43 @@ export class DiskPanel {
     this.message.textContent = text;
   }
 
+  /** Shows the inserted disk, e.g. "GAMES (zork.d64)". */
+  showDisk(name: string, detail: string, hasSavedChanges = false): void {
+    this.diskName.textContent = name;
+    this.diskFile.textContent = `(${detail})`;
+    this.root.dataset.state = 'loaded';
+    this.setSavedChanges(hasSavedChanges);
+  }
+
+  /** Marks whether games have saved to the inserted (dropped) disk image. */
+  setSavedChanges(saved: boolean): void {
+    this.savedMarker.hidden = !saved;
+    this.revertButton.hidden = !saved;
+  }
+
+  setSaveDisks(disks: SaveDiskOption[], selectedId: string | null): void {
+    this.saveDiskSelect.replaceChildren(
+      ...disks.map((disk) => {
+        const option = document.createElement('option');
+        option.value = disk.id;
+        option.textContent = disk.name;
+        option.selected = disk.id === selectedId;
+        return option;
+      }),
+    );
+    this.saveDiskList.hidden = disks.length === 0;
+  }
+
+  /** Runs a button's async action, showing any error in the panel. */
+  private onClick(action: string, run: () => Promise<void>): void {
+    requireChild<HTMLButtonElement>(this.root, `[data-action="${action}"]`).addEventListener('click', () => {
+      this.message.textContent = '';
+      run()
+        .catch((error: unknown) => (this.message.textContent = error instanceof Error ? error.message : String(error)))
+        .finally(() => this.callbacks.focusScreen());
+    });
+  }
+
   private async insert(file: File): Promise<void> {
     try {
       const media = await this.callbacks.onFile(file);
@@ -132,9 +211,7 @@ export class DiskPanel {
         this.cartName.textContent = `${media.name} (${file.name})`;
         this.cartSlot.hidden = false;
       } else {
-        this.diskName.textContent = media.name;
-        this.diskFile.textContent = `(${file.name})`;
-        this.root.dataset.state = 'loaded';
+        this.showDisk(media.name, file.name, media.hasSavedChanges);
       }
       this.message.textContent = '';
       this.callbacks.focusScreen();

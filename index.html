@@ -19,14 +19,30 @@
           <p class="disk-title">
             <span class="disk-name"></span>
             <span class="disk-file"></span>
+            <span class="disk-saved" hidden>has saved games</span>
           </p>
           <p class="disk-tip">Infocom games: answer <strong>N</strong> when asked about a 1541 drive.</p>
           <div class="disk-actions">
             <button type="button" data-action="choose">Change disk</button>
             <button type="button" data-action="eject">Eject</button>
+            <button type="button" data-action="revert" hidden title="Forget the games saved to this disk">
+              Revert to original
+            </button>
             <button type="button" data-action="reset">Reset C64</button>
           </div>
         </div>
+        <div class="save-disks">
+          <button type="button" data-action="new-save-disk" title="A blank disk for games that save to their own disk">
+            New blank disk
+          </button>
+          <span class="save-disk-list" hidden>
+            <select name="save-disk" aria-label="Save disks"></select>
+            <button type="button" data-action="insert-save-disk">Insert</button>
+            <button type="button" data-action="export-save-disk" title="Download as a .d64 file">Export</button>
+            <button type="button" data-action="delete-save-disk">Delete</button>
+          </span>
+        </div>
+        <p class="save-hint">Saving games needs the Accurate drive.</p>
         <p class="cart-slot" hidden>
           Cartridge: <span class="cart-name"></span>
           <button type="button" data-action="remove-cart">Remove</button>

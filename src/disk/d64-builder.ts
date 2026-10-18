@@ -1,4 +1,5 @@
-import { PETSCII_PAD, textToPetscii } from './media';
+import { D64Image } from './d64';
+import { PETSCII_PAD, textToPetscii, type DiskMedia } from './media';
 
 const D64_SIZE = 174848;
 const SECTOR = 256;
@@ -31,6 +32,13 @@ function writeName(image: Uint8Array, at: number, name: string | Uint8Array): vo
   image.set((typeof name === 'string' ? textToPetscii(name) : name).subarray(0, 16), at);
 }
 
+/** Disk media as a D64 image: .prg and tape files are placed on a freshly built disk. */
+export function mediaToD64(media: DiskMedia): D64Image {
+  if (media instanceof D64Image) return media;
+  const files = media.files().map((entry) => ({ name: entry.name, data: media.readFile(entry), type: entry.type }));
+  return new D64Image(buildD64(media.name, 'PR 2A', files));
+}
+
 /**
  * Builds a 35-track D64. Files are stored sequentially from track 1 (skipping
  * the directory track), and the directory uses sectors 18/1, 18/4, ...
@@ -42,16 +50,30 @@ export function buildD64(diskName: string | Uint8Array, diskId: string, files: D
   image[bam] = DIRECTORY_TRACK;
   image[bam + 1] = 1;
   image[bam + 2] = 0x41;
-  for (let track = 1; track <= 35; track++) image[bam + 4 * track] = sectorsPerTrack(track);
+  // Each track's BAM entry: a free-sector count, then a bitmap with 1 = free.
+  // The DOS rejects a disk whose counts and bitmaps disagree (71, DIR ERROR).
+  for (let track = 1; track <= 35; track++) {
+    const entry = bam + 4 * track;
+    image[entry] = sectorsPerTrack(track);
+    for (let s = 0; s < sectorsPerTrack(track); s++) image[entry + 1 + (s >> 3)] |= 1 << (s & 7);
+  }
+  const markUsed = (track: number, sector: number) => {
+    const entry = bam + 4 * track;
+    image[entry + 1 + (sector >> 3)] &= ~(1 << (sector & 7));
+    image[entry]--;
+  };
   writeName(image, bam + 0x90, diskName);
+  image.fill(PETSCII_PAD, bam + 0xa0, bam + 0xab);
   image.set(textToPetscii(diskId), bam + 0xa2);
+  image[bam + 0xa4] = PETSCII_PAD;
+  markUsed(DIRECTORY_TRACK, 0);
 
   let track = 1;
   let sector = 0;
   const allocate = () => {
     if (track > 35) throw new Error('Files do not fit on a D64');
     const at = { track, sector };
-    image[bam + 4 * track]--;
+    markUsed(track, sector);
     if (++sector === sectorsPerTrack(track)) {
       sector = 0;
       track = track + 1 === DIRECTORY_TRACK ? track + 2 : track + 1;
@@ -66,6 +88,7 @@ export function buildD64(diskName: string | Uint8Array, diskId: string, files: D
     const last = i === directorySectors - 1;
     image[at] = last ? 0 : DIRECTORY_TRACK;
     image[at + 1] = last ? 0xff : 1 + (i + 1) * 3;
+    markUsed(DIRECTORY_TRACK, 1 + i * 3);
   }
 
   files.forEach((file, index) => {

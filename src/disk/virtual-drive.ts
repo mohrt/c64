@@ -349,7 +349,8 @@ export class VirtualDrive {
 
     const header = new Array<number>(16).fill(SPACE);
     media.name.forEach((b, i) => (header[i] = b === PETSCII_PAD ? SPACE : b));
-    line(0, [RVS_ON, QUOTE, ...header, QUOTE, SPACE, ...media.id]);
+    const id = [...media.id].map((b) => (b === PETSCII_PAD ? SPACE : b));
+    line(0, [RVS_ON, QUOTE, ...header, QUOTE, SPACE, ...id]);
 
     const filter = directoryFilter(pattern);
     for (const file of media.files()) {

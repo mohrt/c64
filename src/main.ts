@@ -5,7 +5,11 @@ import type { Cartridge } from './cartridge/cartridge';
 import { createCartridge } from './cartridge/cartridge-types';
 import { isCrt, parseCrt } from './cartridge/crt';
 import { D64Image } from './disk/d64';
+import { mediaToD64 } from './disk/d64-builder';
 import { isT64, t64ToD64 } from './disk/t64';
+import { DiskSaves, type DiskSaveRecord, type SaveDiskRecord } from './storage/disk-saves';
+import { memoryStores, openBrowserStores, type KeyValueStore } from './storage/store';
+import { downloadFile } from './ui/download';
 import { petsciiToText, type DiskMedia } from './disk/media';
 import { PrgMedia } from './disk/prg-media';
 import { GamepadJoystick, KeyboardJoystick } from './io/joystick-input';
@@ -94,6 +98,8 @@ interface LoopOptions {
   onDriveLed: (on: boolean) => void;
   audio: AudioOutput | null;
   autostart: Autostart;
+  /** Called when the drive motor stops, i.e. after the DOS has finished any writing. */
+  onDriveStopped: () => void;
 }
 
 function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
@@ -101,6 +107,7 @@ function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
   let cycleDebt = 0;
   let ledShown = false;
   let warping = false;
+  let driveWasBusy = false;
 
   const frame = (now: number) => {
     const elapsed = Math.min(now - lastTime, MAX_CATCH_UP_MS);
@@ -117,6 +124,8 @@ function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
     }
 
     options.autostart.tick();
+    if (driveWasBusy && !c64.driveBusy) options.onDriveStopped();
+    driveWasBusy = c64.driveBusy;
 
     // Warped audio would play back many times too fast, so it is dropped.
     const samples = c64.takeAudioSamples();
@@ -189,6 +198,27 @@ async function main(): Promise<void> {
 
     const autostart = new Autostart(c64);
     let autostartEnabled = true;
+
+    // Games' saves live in browser storage; the user's disk images are never modified.
+    const stores = await openBrowserStores().catch((error: unknown) => {
+      console.warn('Browser storage is unavailable; saves will last until the page is closed.', error);
+      return memoryStores();
+    });
+    const diskSaves = new DiskSaves(
+      stores.diskSaves as KeyValueStore<DiskSaveRecord>,
+      stores.saveDisks as KeyValueStore<SaveDiskRecord>,
+    );
+    const refreshSaveDisks = async () =>
+      diskPanel.setSaveDisks(await diskSaves.listSaveDisks(), diskSaves.currentSaveDiskId);
+    /** Stores whatever the drive has written to the inserted disk. */
+    const persistDisk = async () => {
+      if (!c64.syncDisk()) return;
+      await diskSaves.persist(c64.diskImage!);
+      if (diskSaves.currentSaveDiskId) await refreshSaveDisks();
+      else diskPanel.setSavedChanges(true);
+    };
+    const insertWritable = (image: D64Image) => c64.insertDisk(image, { writable: true });
+
     const diskPanel = new DiskPanel(diskPanelRoot, {
       onFile: async (file) => {
         const media = await readMedia(file);
@@ -197,13 +227,53 @@ async function main(): Promise<void> {
           c64.insertCartridge(media.cartridge);
           return { kind: 'cartridge', name: media.cartridge.name || file.name };
         }
+        await persistDisk();
+        const { image, hasSavedChanges } = await diskSaves.openImage(mediaToD64(media.disk).bytes, file.name);
         // Only autostart from the READY prompt; mid-game this is a disk swap.
         const startIt = autostartEnabled && atReadyPrompt(c64);
-        c64.insertDisk(media.disk);
+        insertWritable(image);
         if (startIt) autostart.start();
-        return { kind: 'disk', name: petsciiToText(media.disk.name).trim() || file.name };
+        await refreshSaveDisks();
+        return { kind: 'disk', name: petsciiToText(image.name).trim() || file.name, hasSavedChanges };
       },
-      onEject: () => c64.insertDisk(null),
+      onEject: () => {
+        void persistDisk().then(() => {
+          diskSaves.eject();
+          c64.insertDisk(null);
+          return refreshSaveDisks();
+        });
+      },
+      onRevert: async () => {
+        const image = await diskSaves.revert();
+        if (image) insertWritable(image);
+      },
+      onNewSaveDisk: async () => {
+        await persistDisk();
+        const { image, name } = await diskSaves.createSaveDisk();
+        insertWritable(image);
+        await refreshSaveDisks();
+        return name;
+      },
+      onInsertSaveDisk: async (id) => {
+        await persistDisk();
+        const disk = await diskSaves.openSaveDisk(id);
+        if (!disk) throw new Error('That save disk no longer exists.');
+        insertWritable(disk.image);
+        await refreshSaveDisks();
+        return disk.name;
+      },
+      onExportSaveDisk: async (id) => {
+        await persistDisk();
+        const bytes = await diskSaves.saveDiskBytes(id);
+        const name = (await diskSaves.listSaveDisks()).find((disk) => disk.id === id)?.name ?? 'save disk';
+        if (bytes) downloadFile(bytes, `${name.toLowerCase().replace(/\s+/g, '-')}.d64`);
+      },
+      onDeleteSaveDisk: async (id) => {
+        const wasInserted = diskSaves.currentSaveDiskId === id;
+        await diskSaves.deleteSaveDisk(id);
+        if (wasInserted) c64.insertDisk(null);
+        await refreshSaveDisks();
+      },
       onRemoveCartridge: () => {
         autostart.cancel();
         c64.insertCartridge(null);
@@ -241,6 +311,12 @@ async function main(): Promise<void> {
       onDriveLed: (on) => diskPanel.setLed(on),
       audio,
       autostart,
+      onDriveStopped: () => void persistDisk(),
+    });
+    await refreshSaveDisks();
+    // Also save when the tab is hidden or closed, in case the drive is still spinning.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') void persistDisk();
     });
   } catch (error) {
     status.textContent = error instanceof Error ? error.message : String(error);

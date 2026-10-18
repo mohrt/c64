@@ -63,6 +63,11 @@ export class Drive1541 {
       // CA2 is the "SO enable" line: when high, BYTE READY sets the CPU's overflow flag.
       if (this.via2.ca2High) this.cpu.setOverflow();
     };
+    // CB2 low selects write mode; the byte to write comes out of VIA2 port A.
+    this.mechanics.writeControl = {
+      writing: () => this.via2.cb2Low,
+      byteToWrite: () => this.via2.portAOutput,
+    };
     this.reset();
   }
 

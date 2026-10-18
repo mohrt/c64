@@ -1,8 +1,8 @@
 import type { Cartridge } from './cartridge/cartridge';
 import { Cia } from './cia/cia';
 import { Cpu6510 } from './cpu/cpu6510';
-import { D64Image } from './disk/d64';
-import { buildD64 } from './disk/d64-builder';
+import type { D64Image } from './disk/d64';
+import { mediaToD64 } from './disk/d64-builder';
 import { IecTraps } from './disk/iec-traps';
 import type { DiskMedia } from './disk/media';
 import { VirtualDrive } from './disk/virtual-drive';
@@ -57,6 +57,8 @@ export class C64 {
   clock = 0;
 
   private readonly iecTraps: IecTraps;
+  private disk: D64Image | null = null;
+  private gcrDisk: GcrDisk | null = null;
   private mode: DriveMode = 'fast';
   private nmiLevel = false;
   private executing = false;
@@ -96,6 +98,8 @@ export class C64 {
 
   setDriveMode(mode: DriveMode): void {
     if (mode === 'accurate' && !this.drive1541) throw new Error('Accurate drive mode needs the 1541 DOS ROM');
+    // The virtual drive reads the disk image, so it needs anything the 1541 wrote.
+    if (mode === 'fast') this.syncDisk();
     this.mode = mode;
     this.iecBus.driveConnected = mode === 'accurate';
     if (this.drive1541) this.drive1541.time = this.clock;
@@ -116,10 +120,30 @@ export class C64 {
     this.reset();
   }
 
-  /** Inserts a disk into drive 8, or ejects it when given null. */
-  insertDisk(media: DiskMedia | null): void {
-    this.drive.insert(media);
-    this.drive1541?.insert(media ? GcrDisk.fromD64(toD64(media)) : null);
+  /**
+   * Inserts a disk into drive 8, or ejects it when given null. Writable disks
+   * accept saves from programs on the 1541 (accurate mode).
+   */
+  insertDisk(media: DiskMedia | null, options: { writable?: boolean } = {}): void {
+    const image = media ? mediaToD64(media) : null;
+    this.disk = image;
+    this.drive.insert(image);
+    this.gcrDisk = image ? GcrDisk.fromD64(image) : null;
+    if (this.gcrDisk) this.gcrDisk.writeProtected = !options.writable;
+    this.drive1541?.insert(this.gcrDisk);
+  }
+
+  /** The inserted disk, including everything the drive has written to it. */
+  get diskImage(): D64Image | null {
+    this.syncDisk();
+    return this.disk;
+  }
+
+  /** Copies sectors the 1541 has written back into the disk image; true if anything changed. */
+  syncDisk(): boolean {
+    if (!this.disk || !this.gcrDisk?.modified) return false;
+    this.gcrDisk.writeChangesTo(this.disk);
+    return true;
   }
 
   /** The 16K bank the VIC-II sees, selected by the inverted low bits of CIA2 port A. */
@@ -233,11 +257,4 @@ export class C64 {
     const frame = this.vic.frameCount;
     while (this.vic.frameCount === frame) this.step();
   }
-}
-
-/** The real drive reads sectors, so a single .prg is placed on a freshly built disk. */
-function toD64(media: DiskMedia): D64Image {
-  if (media instanceof D64Image) return media;
-  const files = media.files().map((entry) => ({ name: entry.name, data: media.readFile(entry), type: entry.type }));
-  return new D64Image(buildD64(media.name, 'PR 2A', files));
 }

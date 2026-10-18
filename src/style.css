@@ -220,6 +220,55 @@ main {
   font: inherit;
 }
 
+.disk-saved {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: #2b3d24;
+  color: #9ad284;
+  font-size: 0.8rem;
+}
+
+.save-disks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.save-disk-list:not([hidden]) {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.save-disks select {
+  padding: 0.35rem 0.4rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.save-hint {
+  display: none;
+  margin-top: 0.5rem !important;
+  font-size: 0.8rem;
+  color: #c9a227;
+}
+
+.disk-panel[data-drive-mode='fast'] .save-hint {
+  display: block;
+}
+
+.disk-panel.drag-over .save-disks,
+.disk-panel.drag-over .save-hint {
+  display: none;
+}
+
 .cart-slot {
   display: flex;
   justify-content: center;
