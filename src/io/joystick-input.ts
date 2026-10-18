@@ -138,6 +138,26 @@ export class GamepadJoystick {
   }
 }
 
+/** A one-line description of each connected gamepad and what is pressed, for the controls panel. */
+export function describeGamepads(): string {
+  const pads = [...(navigator.getGamepads?.() ?? [])].filter((pad): pad is Gamepad => pad !== null);
+  return pads
+    .map((pad) => {
+      const bits = gamepadBits(pad);
+      const pressed = [
+        bits & Up ? 'up' : '',
+        bits & Down ? 'down' : '',
+        bits & Left ? 'left' : '',
+        bits & Right ? 'right' : '',
+        bits & Fire ? 'FIRE' : '',
+        ...pad.buttons.flatMap((button, index) => (button.pressed ? [`button ${index}`] : [])),
+      ].filter(Boolean);
+      const name = pad.id.replace(/\s*\(.*\)\s*$/, '').trim() || 'gamepad';
+      return `Gamepad ${pad.index + 1} (${name}): ${pressed.length ? pressed.join(', ') : 'nothing pressed'}`;
+    })
+    .join(' · ');
+}
+
 function gamepadBits(pad: Gamepad): number {
   const pressed = (index: number) => pad.buttons[index]?.pressed ?? false;
   const x = pad.axes[0] ?? 0;

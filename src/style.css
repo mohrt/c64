@@ -197,6 +197,13 @@ main {
   color: #c9a227;
 }
 
+.gamepad-status {
+  margin: 0.5rem 0 0;
+  color: #9ad284;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 .controls-hint {
   margin: 0.5rem 0 0;
   color: #777;

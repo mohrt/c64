@@ -23,7 +23,13 @@ import { downloadFile } from './ui/download';
 import { attachToolbar } from './ui/toolbar';
 import { petsciiToText, type DiskMedia } from './disk/media';
 import { PrgMedia } from './disk/prg-media';
-import { GamepadJoystick, KEY_SETS, KeyboardJoystick, combineInterceptors } from './io/joystick-input';
+import {
+  GamepadJoystick,
+  KEY_SETS,
+  KeyboardJoystick,
+  combineInterceptors,
+  describeGamepads,
+} from './io/joystick-input';
 import { BrowserKeyboard } from './io/keyboard';
 import { Mouse1351 } from './io/mouse';
 import type { Roms } from './memory/bus';
@@ -242,6 +248,11 @@ async function main(): Promise<void> {
       onVolume: (volume) => audio?.setVolume(volume),
       focusScreen: () => canvas.focus(),
     });
+    const gamepadStatus = requireElement<HTMLElement>('.gamepad-status');
+    setInterval(() => {
+      const text = describeGamepads() || 'No gamepad found yet: plug one in and press one of its buttons.';
+      if (gamepadStatus.textContent !== text) gamepadStatus.textContent = text;
+    }, 100);
     if (!audio) {
       controls.disableSound('Sound is not supported in this browser');
     } else if (!audio.running) {
