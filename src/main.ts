@@ -51,6 +51,7 @@ const REMEMBERED_SETTINGS = [
   'port2-keys',
   'port2-pad',
   'mouse-port',
+  'show-gamepad-input',
   'sound',
   'volume',
 ];
@@ -249,10 +250,25 @@ async function main(): Promise<void> {
       focusScreen: () => canvas.focus(),
     });
     const gamepadStatus = requireElement<HTMLElement>('.gamepad-status');
-    setInterval(() => {
+    const showGamepadInput = requireElement<HTMLInputElement>('[name="show-gamepad-input"]');
+    let gamepadStatusTimer: ReturnType<typeof setInterval> | undefined;
+    const updateGamepadStatus = () => {
       const text = describeGamepads() || 'No gamepad found yet: plug one in and press one of its buttons.';
       if (gamepadStatus.textContent !== text) gamepadStatus.textContent = text;
-    }, 100);
+    };
+    const applyShowGamepadInput = () => {
+      clearInterval(gamepadStatusTimer);
+      gamepadStatus.hidden = !showGamepadInput.checked;
+      if (showGamepadInput.checked) {
+        updateGamepadStatus();
+        gamepadStatusTimer = setInterval(updateGamepadStatus, 100);
+      }
+    };
+    showGamepadInput.addEventListener('change', () => {
+      applyShowGamepadInput();
+      canvas.focus();
+    });
+    applyShowGamepadInput();
     if (!audio) {
       controls.disableSound('Sound is not supported in this browser');
     } else if (!audio.running) {
