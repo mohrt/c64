@@ -3,7 +3,7 @@ import { MIN_KEY_HOLD_MS, type KeyInterceptor } from './keyboard';
 
 const { Up, Down, Left, Right, Fire } = Joystick;
 
-/** The numeric keypad: always a joystick, since it has no other use on a C64. */
+/** The numeric keypad, which has no other use on a C64. */
 export const NUMPAD_KEYS: Record<string, number> = {
   Numpad8: Up,
   Numpad2: Down,
@@ -17,7 +17,7 @@ export const NUMPAD_KEYS: Record<string, number> = {
   Numpad5: Fire,
 };
 
-/** Arrow keys + Space, used only when enabled because they are also C64 keys. */
+/** Arrow keys + Space; while used as a joystick they don't reach the C64 keyboard. */
 export const ARROW_KEYS: Record<string, number> = {
   ArrowUp: Up,
   ArrowDown: Down,
@@ -26,7 +26,7 @@ export const ARROW_KEYS: Record<string, number> = {
   Space: Fire,
 };
 
-/** W A S D + F for a second player, used only when enabled because they are also C64 keys. */
+/** W A S D + F; while used as a joystick they don't reach the C64 keyboard. */
 export const WASD_KEYS: Record<string, number> = {
   KeyW: Up,
   KeyS: Down,
@@ -34,6 +34,9 @@ export const WASD_KEYS: Record<string, number> = {
   KeyD: Right,
   KeyF: Fire,
 };
+
+export const KEY_SETS = { numpad: NUMPAD_KEYS, arrows: ARROW_KEYS, wasd: WASD_KEYS } as const;
+export type KeySetName = keyof typeof KEY_SETS;
 
 const AXIS_THRESHOLD = 0.5;
 
@@ -52,17 +55,7 @@ export class KeyboardJoystick implements KeyInterceptor {
   private readonly pressedAt = new Map<string, number>();
   private readonly pendingReleases = new Map<string, ReturnType<typeof setTimeout>>();
 
-  /** `source` names this input on the port, so several can drive it at once. */
-  constructor(
-    private port: ControlPort,
-    private readonly source: string,
-  ) {}
-
-  setPort(port: ControlPort): void {
-    this.port.set(this.source, 0);
-    this.port = port;
-    this.update();
-  }
+  constructor(private readonly port: ControlPort) {}
 
   /** Chooses which keys act as this joystick (an empty map turns it off). */
   setKeys(keys: Record<string, number>): void {
@@ -113,7 +106,7 @@ export class KeyboardJoystick implements KeyInterceptor {
   private update(): void {
     let bits = 0;
     for (const value of this.held.values()) bits |= value;
-    this.port.set(this.source, bits);
+    this.port.set('keyboard', bits);
   }
 }
 
@@ -127,24 +120,21 @@ export function combineInterceptors(...interceptors: KeyInterceptor[]): KeyInter
 
 /** Drives a control port from one gamepad (D-pad or left stick, A/B to fire). */
 export class GamepadJoystick {
-  private readonly source: string;
+  private padIndex: number | null = null;
 
-  constructor(
-    private port: ControlPort,
-    private readonly padIndex: number,
-  ) {
-    this.source = `gamepad-${padIndex}`;
-  }
+  constructor(private readonly port: ControlPort) {}
 
-  setPort(port: ControlPort): void {
-    this.port.set(this.source, 0);
-    this.port = port;
+  /** Chooses the gamepad by its browser index; null disconnects it from the port. */
+  setPad(index: number | null): void {
+    this.padIndex = index;
+    this.port.set('gamepad', 0);
   }
 
   /** Gamepads have no events for button state, so this runs once per animation frame. */
   poll(): void {
+    if (this.padIndex === null) return;
     const pad = navigator.getGamepads?.()[this.padIndex];
-    this.port.set(this.source, pad ? gamepadBits(pad) : 0);
+    this.port.set('gamepad', pad ? gamepadBits(pad) : 0);
   }
 }
 

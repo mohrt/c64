@@ -23,14 +23,7 @@ import { downloadFile } from './ui/download';
 import { attachToolbar } from './ui/toolbar';
 import { petsciiToText, type DiskMedia } from './disk/media';
 import { PrgMedia } from './disk/prg-media';
-import {
-  ARROW_KEYS,
-  GamepadJoystick,
-  KeyboardJoystick,
-  NUMPAD_KEYS,
-  WASD_KEYS,
-  combineInterceptors,
-} from './io/joystick-input';
+import { GamepadJoystick, KEY_SETS, KeyboardJoystick, combineInterceptors } from './io/joystick-input';
 import { BrowserKeyboard } from './io/keyboard';
 import { Mouse1351 } from './io/mouse';
 import type { Roms } from './memory/bus';
@@ -47,9 +40,10 @@ const REMEMBERED_SETTINGS = [
   'drive-mode',
   'warp',
   'autostart',
-  'joystick-port',
-  'arrow-joystick',
-  'second-joystick',
+  'port1-keys',
+  'port1-pad',
+  'port2-keys',
+  'port2-pad',
   'mouse-port',
   'sound',
   'volume',
@@ -229,29 +223,20 @@ async function main(): Promise<void> {
     const screen = new Screen(canvas, c64.model.visibleLines);
     c64.vic.onFrameComplete = (framebuffer) => screen.capture(framebuffer);
 
-    // Joystick 1 (numpad, optionally arrows, first gamepad) goes in the chosen port;
-    // joystick 2 (optionally W A S D + F, second gamepad) goes in the other one.
+    // Each control port has its own keyboard keys and gamepad, as chosen in the controls panel.
     const portFor = (port: PortNumber) => (port === 1 ? c64.port1 : c64.port2);
-    const otherPort = (port: PortNumber) => (port === 1 ? c64.port2 : c64.port1);
-    const joystick1Keys = new KeyboardJoystick(c64.port2, 'keyboard-1');
-    const joystick2Keys = new KeyboardJoystick(c64.port1, 'keyboard-2');
-    joystick1Keys.setKeys(NUMPAD_KEYS);
-    const gamepads = [new GamepadJoystick(c64.port2, 0), new GamepadJoystick(c64.port1, 1)];
+    const portKeys = { 1: new KeyboardJoystick(c64.port1), 2: new KeyboardJoystick(c64.port2) };
+    const portGamepads = { 1: new GamepadJoystick(c64.port1), 2: new GamepadJoystick(c64.port2) };
+    const gamepads = Object.values(portGamepads);
     const mouse = new Mouse1351(canvas);
     new BrowserKeyboard(
       c64.keyboard,
       () => c64.pressRestore(),
-      combineInterceptors(joystick1Keys, joystick2Keys),
+      combineInterceptors(portKeys[1], portKeys[2]),
     ).attach(window);
     const controls = attachControlsPanel(controlsRoot, {
-      onJoystickPort: (port) => {
-        joystick1Keys.setPort(portFor(port));
-        gamepads[0].setPort(portFor(port));
-        joystick2Keys.setPort(otherPort(port));
-        gamepads[1].setPort(otherPort(port));
-      },
-      onArrowKeys: (enabled) => joystick1Keys.setKeys(enabled ? { ...NUMPAD_KEYS, ...ARROW_KEYS } : NUMPAD_KEYS),
-      onSecondJoystickKeys: (enabled) => joystick2Keys.setKeys(enabled ? WASD_KEYS : {}),
+      onPortKeys: (port, keys) => portKeys[port].setKeys(keys ? KEY_SETS[keys] : {}),
+      onPortGamepad: (port, pad) => portGamepads[port].setPad(pad),
       onMousePort: (port) => mouse.setPort(port ? portFor(port) : null),
       onSound: (enabled) => audio?.setEnabled(enabled),
       onVolume: (volume) => audio?.setVolume(volume),

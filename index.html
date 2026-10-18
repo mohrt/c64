@@ -105,18 +105,40 @@
       </section>
 
       <section id="controls" class="controls" aria-label="Controllers">
-        <div class="controls-row">
-          <label>
-            Joystick in
-            <select name="joystick-port">
-              <option value="2" selected>Port 2</option>
-              <option value="1">Port 1</option>
+        <div class="controls-row joysticks">
+          <span class="joystick-port">
+            <strong>Port 1 joystick</strong>
+            <select name="port1-keys" aria-label="Port 1 joystick keys">
+              <option value="off" selected>No keys</option>
+              <option value="numpad">Numpad 8 4 6 2, 0 fires</option>
+              <option value="arrows">Arrow keys, Space fires</option>
+              <option value="wasd">W A S D, F fires</option>
             </select>
-          </label>
-          <label><input type="checkbox" name="arrow-joystick" /> Arrow keys + Space are the joystick</label>
-          <label title="Joystick 2 plugs into the other port, for two-player games">
-            <input type="checkbox" name="second-joystick" /> W A S D + F are joystick 2
-          </label>
+            <select name="port1-pad" aria-label="Port 1 gamepad">
+              <option value="off">No gamepad</option>
+              <option value="0">Gamepad 1</option>
+              <option value="1" selected>Gamepad 2</option>
+            </select>
+          </span>
+          <button type="button" data-action="swap-ports" title="Most games use port 2, some use port 1">
+            Swap ports
+          </button>
+          <span class="joystick-port">
+            <strong>Port 2 joystick</strong>
+            <select name="port2-keys" aria-label="Port 2 joystick keys">
+              <option value="off">No keys</option>
+              <option value="numpad" selected>Numpad 8 4 6 2, 0 fires</option>
+              <option value="arrows">Arrow keys, Space fires</option>
+              <option value="wasd">W A S D, F fires</option>
+            </select>
+            <select name="port2-pad" aria-label="Port 2 gamepad">
+              <option value="off">No gamepad</option>
+              <option value="0" selected>Gamepad 1</option>
+              <option value="1">Gamepad 2</option>
+            </select>
+          </span>
+        </div>
+        <div class="controls-row">
           <label>
             Mouse (1351)
             <select name="mouse-port">
@@ -133,8 +155,8 @@
           <span class="sound-hint" hidden>Click or press a key to start sound</span>
         </div>
         <p class="controls-hint">
-          Numpad 8 4 6 2 + 0 always work as joystick 1, and so does the first gamepad; a second gamepad is joystick 2
-          in the other port. With the mouse on, click the screen to capture it; Esc releases it.
+          Most games read the joystick in port 2; if yours doesn't respond, press Swap ports. Keys used by a joystick
+          don't type on the C64. With the mouse on, click the screen to capture it; Esc releases it.
         </p>
       </section>
 

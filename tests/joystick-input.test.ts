@@ -4,15 +4,15 @@ import { KeyboardJoystick, NUMPAD_KEYS, WASD_KEYS, combineInterceptors } from '.
 
 const key = (code: string) => ({ code, repeat: false }) as KeyboardEvent;
 
-describe('two keyboard joysticks', () => {
+describe('keyboard joysticks', () => {
   it('drive two ports at the same time', () => {
     const port1 = new ControlPort();
     const port2 = new ControlPort();
-    const player1 = new KeyboardJoystick(port2, 'keyboard-1');
-    const player2 = new KeyboardJoystick(port1, 'keyboard-2');
-    player1.setKeys(NUMPAD_KEYS);
-    player2.setKeys(WASD_KEYS);
-    const keys = combineInterceptors(player1, player2);
+    const port2Keys = new KeyboardJoystick(port2);
+    const port1Keys = new KeyboardJoystick(port1);
+    port2Keys.setKeys(NUMPAD_KEYS);
+    port1Keys.setKeys(WASD_KEYS);
+    const keys = combineInterceptors(port1Keys, port2Keys);
 
     expect(keys.handle(key('Numpad8'), true)).toBe(true);
     expect(keys.handle(key('KeyF'), true)).toBe(true);
@@ -21,22 +21,20 @@ describe('two keyboard joysticks', () => {
     expect(port1.lines & Joystick.Up).toBe(Joystick.Up);
   });
 
-  it('leaves keys alone when the second joystick is off', () => {
+  it('leaves keys alone when a port has no keys', () => {
     const port1 = new ControlPort();
-    const player2 = new KeyboardJoystick(port1, 'keyboard-2');
-    player2.setKeys({});
-    expect(player2.handle(key('KeyW'), true)).toBe(false);
+    const port1Keys = new KeyboardJoystick(port1);
+    port1Keys.setKeys({});
+    expect(port1Keys.handle(key('KeyW'), true)).toBe(false);
     expect(port1.lines).toBe(0xff);
   });
 
-  it('moves to another port, releasing the old one', () => {
-    const port1 = new ControlPort();
+  it('releases held directions when its keys change', () => {
     const port2 = new ControlPort();
-    const player1 = new KeyboardJoystick(port2, 'keyboard-1');
-    player1.setKeys(NUMPAD_KEYS);
-    player1.handle(key('Numpad0'), true);
-    player1.setPort(port1);
+    const port2Keys = new KeyboardJoystick(port2);
+    port2Keys.setKeys(NUMPAD_KEYS);
+    port2Keys.handle(key('Numpad0'), true);
+    port2Keys.setKeys(WASD_KEYS);
     expect(port2.lines).toBe(0xff);
-    expect(port1.lines & Joystick.Fire).toBe(0);
   });
 });

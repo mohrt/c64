@@ -142,13 +142,28 @@ main {
   gap: 0.5rem 1.5rem;
 }
 
-.controls label {
+.controls label,
+.joystick-port {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.controls select {
+.controls-row + .controls-row {
+  margin-top: 0.6rem;
+}
+
+.joysticks {
+  align-items: center;
+}
+
+.joystick-port strong {
+  color: #ddd;
+  font-weight: 600;
+}
+
+.controls select,
+.controls button {
   padding: 0.2rem 0.4rem;
   border: 1px solid #555;
   border-radius: 5px;
