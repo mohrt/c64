@@ -70,6 +70,22 @@ main {
   font-size: 0.85rem;
 }
 
+.site-links {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.site-links a {
+  color: #a9a2ee;
+  text-decoration: none;
+}
+
+.site-links a:hover,
+.site-links a:focus-visible {
+  text-decoration: underline;
+}
+
 /* Toolbar */
 
 .toolbar {
