@@ -31,6 +31,7 @@ const SKIPPED_FIELDS = new Set([
   'romH',
   'image',
   'framebuffer',
+  'videoModel',
   'pixelColor',
   'isForeground',
   'spriteMask',

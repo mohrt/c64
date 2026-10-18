@@ -4,8 +4,8 @@ import { DiskMechanics } from './disk-mechanics';
 import type { GcrDisk } from './gcr';
 import { Via6522 } from './via6522';
 
-/** The C64 runs at 985,248 Hz and the drive at 1 MHz; drive time is kept in C64 cycles. */
-export const C64_CYCLES_PER_DRIVE_CYCLE = 985_248 / 1_000_000;
+const DRIVE_CLOCK_HZ = 1_000_000;
+const PAL_CLOCK_HZ = 985_248;
 
 const RAM_SIZE = 0x800;
 const ROM_SIZE = 0x4000;
@@ -31,6 +31,8 @@ export class Drive1541 {
   readonly mechanics = new DiskMechanics();
   /** Current drive time, in C64 cycles. */
   time = 0;
+  /** The drive runs at 1 MHz whatever the C64's clock. */
+  private c64CyclesPerDriveCycle = PAL_CLOCK_HZ / DRIVE_CLOCK_HZ;
 
   private readonly ram = new Uint8Array(RAM_SIZE);
   private readonly rom: Uint8Array;
@@ -79,6 +81,11 @@ export class Drive1541 {
     return this.mechanics.ledOn;
   }
 
+  /** Sets the C64's clock rate, which drive time is measured in. */
+  setC64ClockRate(hz: number): void {
+    this.c64CyclesPerDriveCycle = hz / DRIVE_CLOCK_HZ;
+  }
+
   reset(): void {
     this.via1.reset();
     this.via2.reset();
@@ -97,7 +104,7 @@ export class Drive1541 {
   runUntil(c64KnownUntil: number): void {
     for (;;) {
       this.cpu.irqLine = this.via1.irq || this.via2.irq;
-      const accessOffset = (this.cpu.nextStepCycles - 1) * C64_CYCLES_PER_DRIVE_CYCLE;
+      const accessOffset = (this.cpu.nextStepCycles - 1) * this.c64CyclesPerDriveCycle;
       if (this.time + accessOffset > c64KnownUntil) return;
 
       this.instructionStart = this.time;
@@ -107,13 +114,13 @@ export class Drive1541 {
       this.via1.tick(cycles);
       this.via2.tick(cycles);
       this.mechanics.tick(cycles);
-      this.time += cycles * C64_CYCLES_PER_DRIVE_CYCLE;
+      this.time += cycles * this.c64CyclesPerDriveCycle;
     }
   }
 
   /** The moment, in C64 cycles, of the bus access in the current drive instruction. */
   private get accessTime(): number {
-    return this.instructionStart + this.cpu.accessCycle * C64_CYCLES_PER_DRIVE_CYCLE;
+    return this.instructionStart + this.cpu.accessCycle * this.c64CyclesPerDriveCycle;
   }
 
   /** ATN from the C64 is wired (inverted) to VIA1 CA1, which interrupts the DOS. */

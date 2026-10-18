@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { D64Image } from '../src/disk/d64';
 import { PrgMedia } from '../src/disk/prg-media';
 import type { DiskMedia } from '../src/disk/media';
+import { NTSC } from '../src/vic/video-model';
 import { buildD64, prg } from './helpers/d64-builder';
 import {
   createMachine,
@@ -81,6 +82,17 @@ describe.skipIf(!hasSystemRoms || !hasDriveRom)('loading through the true 1541 (
     const c64 = boot('system', testDisk());
     const lines = command(c64, 'LOAD"NOPE",8');
     expect(lines.join('\n')).toMatch(/FILE NOT FOUND/);
+  }, 60_000);
+
+  it('loads on an NTSC C64, whose faster clock the drive keeps in step with', () => {
+    const c64 = createMachine('system', { accurateDrive: true });
+    c64.setModel(NTSC);
+    c64.insertDisk(testDisk());
+    runFrames(c64, BOOT_FRAMES);
+    command(c64, 'LOAD"$",8');
+    expect(command(c64, 'LIST').join('\n')).toContain('"TEST DISK       " TD 2A');
+    command(c64, 'LOAD"CODE",8,1');
+    expect([...c64.bus.ram.subarray(0xc000, 0xc004)]).toEqual(incBorder);
   }, 60_000);
 
   it('puts a dropped .prg on a disk so the real drive can load it', () => {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PALETTE_ABGR } from '../src/vic/palette';
-import { CYCLES_PER_FRAME, FRAME_WIDTH, Vic2 } from '../src/vic/vic2';
+import { FRAME_WIDTH, Vic2 } from '../src/vic/vic2';
+import { PAL } from '../src/vic/video-model';
+
+const CYCLES_PER_FRAME = PAL.cyclesPerLine * PAL.linesPerFrame;
 
 // Framebuffer position of the display window's top-left pixel (raster 51, sprite X 24).
 const LEFT = 32;

@@ -1,6 +1,6 @@
 import { AudioOutput } from './audio/audio-output';
 import { Autostart, atReadyPrompt } from './autostart';
-import { C64, PAL_CLOCK_HZ } from './c64';
+import { C64 } from './c64';
 import type { Cartridge } from './cartridge/cartridge';
 import { createCartridge } from './cartridge/cartridge-types';
 import { isCrt, parseCrt } from './cartridge/crt';
@@ -37,9 +37,12 @@ import { Screen } from './render/screen';
 import { attachControlsPanel, type PortNumber } from './ui/controls-panel';
 import { DiskPanel, type InsertedMedia } from './ui/disk-panel';
 import { Settings } from './ui/settings';
+import { FRAME_WIDTH } from './vic/vic2';
+import { videoModel, type VideoModel } from './vic/video-model';
 
 /** Form fields whose values are remembered between visits. */
 const REMEMBERED_SETTINGS = [
+  'video-model',
   'drive-mode',
   'warp',
   'autostart',
@@ -160,7 +163,7 @@ function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
       while (performance.now() < stopAt && c64.driveBusy) c64.runCycles(WARP_SLICE_CYCLES);
       cycleDebt = 0;
     } else {
-      cycleDebt += (elapsed * PAL_CLOCK_HZ) / 1000;
+      cycleDebt += (elapsed * c64.model.clockHz) / 1000;
       cycleDebt -= c64.runCycles(cycleDebt);
     }
 
@@ -184,6 +187,12 @@ function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
+}
+
+/** Sizes the screen for the picture of a PAL or NTSC TV. */
+function showScreenAspect(model: VideoModel): void {
+  const aspect = (FRAME_WIDTH * model.pixelAspect) / model.visibleLines;
+  document.documentElement.style.setProperty('--screen-aspect', aspect.toFixed(4));
 }
 
 function requireElement<T extends HTMLElement>(selector: string): T {
@@ -211,7 +220,12 @@ async function main(): Promise<void> {
     });
     if (audio) c64.sid.setSampleRate(audio.sampleRate);
 
-    const screen = new Screen(canvas);
+    const settings = new Settings();
+    settings.bind(document, REMEMBERED_SETTINGS);
+    if (settings.get('video-model') === 'ntsc') c64.setModel(videoModel('ntsc'));
+    showScreenAspect(c64.model);
+
+    const screen = new Screen(canvas, c64.model.visibleLines);
     c64.vic.onFrameComplete = (framebuffer) => screen.capture(framebuffer);
 
     // Joystick 1 (numpad, optionally arrows, first gamepad) goes in the chosen port;
@@ -223,8 +237,6 @@ async function main(): Promise<void> {
     joystick1Keys.setKeys(NUMPAD_KEYS);
     const gamepads = [new GamepadJoystick(c64.port2, 0), new GamepadJoystick(c64.port1, 1)];
     const mouse = new Mouse1351(canvas);
-    const settings = new Settings();
-    settings.bind(document, REMEMBERED_SETTINGS);
     new BrowserKeyboard(
       c64.keyboard,
       () => c64.pressRestore(),
@@ -283,6 +295,8 @@ async function main(): Promise<void> {
       autostart.cancel();
       await persistDisk();
       c64.loadState(session.machine);
+      showScreenAspect(c64.model);
+      toolbar.showVideoModel(c64.model.name);
       await diskSaves.adopt(session.diskOrigin);
       diskLabel = session.diskLabel;
       if (session.machine.disk) diskPanel.showDisk(diskLabel ?? 'Disk', 'from save state');
@@ -390,6 +404,13 @@ async function main(): Promise<void> {
         autostart.cancel();
         c64.reset();
         diskPanel.showMessage('');
+      },
+      onVideoModel: (name) => {
+        autostart.cancel();
+        c64.setModel(videoModel(name));
+        showScreenAspect(c64.model);
+        diskPanel.showMessage('');
+        audio?.flush();
       },
       onFullscreen: () => {
         if (document.fullscreenElement) void document.exitFullscreen();

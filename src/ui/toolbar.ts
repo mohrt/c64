@@ -1,10 +1,13 @@
 import type { SaveStateInfo } from '../storage/save-states';
+import type { VideoModelName } from '../vic/video-model';
 
 export interface ToolbarCallbacks {
   onPause(paused: boolean): void;
   /** Resets the computer, keeping the disk and cartridge inserted. */
   onReset(): void;
   onFullscreen(): void;
+  /** Switches between a PAL and an NTSC C64 (which resets it). */
+  onVideoModel(model: VideoModelName): void;
   onSaveState(): Promise<void>;
   onLoadState(id: string): Promise<void>;
   onDeleteState(id: string): Promise<void>;
@@ -15,6 +18,8 @@ export interface ToolbarCallbacks {
 }
 
 export interface Toolbar {
+  /** Shows the model in use, e.g. after loading a save state from the other one. */
+  showVideoModel(model: VideoModelName): void;
   setStates(states: SaveStateInfo[]): void;
   showMessage(text: string, isError?: boolean): void;
 }
@@ -61,6 +66,11 @@ export function attachToolbar(root: HTMLElement, callbacks: ToolbarCallbacks): T
   });
   onClick('reset', async () => callbacks.onReset());
   onClick('fullscreen', async () => callbacks.onFullscreen());
+  const videoModel = requireChild<HTMLSelectElement>(root, 'select[name="video-model"]');
+  videoModel.addEventListener('change', () => {
+    callbacks.onVideoModel(videoModel.value === 'ntsc' ? 'ntsc' : 'pal');
+    callbacks.focusScreen();
+  });
 
   onClick('save-state', () => callbacks.onSaveState());
   onClick('load-state', async () => {
@@ -79,6 +89,7 @@ export function attachToolbar(root: HTMLElement, callbacks: ToolbarCallbacks): T
   });
 
   return {
+    showVideoModel: (model) => (videoModel.value = model),
     setStates: (states) => {
       slots.replaceChildren(
         ...states.map((state) => {

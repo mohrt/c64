@@ -15,9 +15,7 @@ import { Bus, type Roms } from './memory/bus';
 import { Sid } from './sid/sid';
 import { captureState, restoreState, type StateNode } from './state/snapshot';
 import { Vic2 } from './vic/vic2';
-
-/** PAL system clock in Hz. */
-export const PAL_CLOCK_HZ = 985_248;
+import { videoModel, type VideoModel, type VideoModelName } from './vic/video-model';
 
 /**
  * How device 8 is emulated: `accurate` runs a real 1541 (DOS ROM, drive CPU,
@@ -48,9 +46,14 @@ export interface MachineState {
   /** ROM contents aren't stored, so the same cartridge must be plugged in to load the state. */
   cartridgeName: string | null;
   hasDrive: boolean;
+  /** Missing in states saved before NTSC support, which were all PAL. */
+  model?: VideoModelName;
 }
 
-/** A PAL Commodore 64 with a 1541 disk drive (accurate or virtual) as device 8, and no cartridge. */
+/**
+ * A Commodore 64 (PAL unless switched to NTSC) with a 1541 disk drive (accurate
+ * or virtual) as device 8, and no cartridge.
+ */
 export class C64 {
   readonly bus: Bus;
   readonly cpu: Cpu6510;
@@ -103,6 +106,18 @@ export class C64 {
     this.iecTraps = new IecTraps(this.cpu, this.bus, this.drive, roms.kernal);
     this.drive1541 = driveRom ? new Drive1541(driveRom, this.iecBus) : null;
     this.setDriveMode(this.drive1541 ? 'accurate' : 'fast');
+    this.reset();
+  }
+
+  get model(): VideoModel {
+    return this.vic.model;
+  }
+
+  /** Turns the machine into a PAL or NTSC C64, which resets it (disk and cartridge stay in). */
+  setModel(model: VideoModel): void {
+    this.vic.setModel(model);
+    this.sid.setClockRate(model.clockHz);
+    this.drive1541?.setC64ClockRate(model.clockHz);
     this.reset();
   }
 
@@ -161,6 +176,7 @@ export class C64 {
       disk: this.disk ? { bytes: this.disk.bytes, writable: !(this.gcrDisk?.writeProtected ?? true) } : null,
       cartridgeName: this.bus.cartridgeName,
       hasDrive: this.drive1541 !== null,
+      model: this.model.name,
     };
   }
 
@@ -175,6 +191,8 @@ export class C64 {
       );
     }
     if (state.hasDrive && !this.drive1541) throw new Error('This save state needs the 1541 drive ROM.');
+    const model = videoModel(state.model ?? 'pal');
+    if (model !== this.model) this.setModel(model);
     this.insertDisk(state.disk ? new D64Image(state.disk.bytes.slice()) : null, { writable: state.disk?.writable });
     restoreState(this, state.chips);
   }

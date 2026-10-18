@@ -18,6 +18,7 @@ const MULTICOLOR_MODE = 0x10;
 const MAX_SECONDS = 180;
 
 describe.skipIf(!lemmingsImage || !hasSystemRoms || !hasDriveRom)('Lemmings on the true 1541', () => {
+  // This crack's fast loader is timed for PAL; on NTSC (a 3.8% faster C64) it loses sync.
   it('gets through the crack intro and its drive fast loader to the title screen', () => {
     const c64 = createMachine('system', { accurateDrive: true });
     c64.insertDisk(new D64Image(new Uint8Array(readFileSync(lemmingsImage!))));

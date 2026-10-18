@@ -1,14 +1,8 @@
 import type { IoDevice } from '../memory/bus';
 import { PALETTE_ABGR } from './palette';
-
-export const CYCLES_PER_LINE = 63;
-export const LINES_PER_FRAME = 312;
-export const CYCLES_PER_FRAME = CYCLES_PER_LINE * LINES_PER_FRAME;
+import { PAL, type VideoModel } from './video-model';
 
 export const FRAME_WIDTH = 384;
-export const FRAME_HEIGHT = 272;
-/** Raster line shown at the top of the framebuffer (36 lines of top border). */
-const FIRST_VISIBLE_LINE = 15;
 
 /** Framebuffer x of the 40-column display window's left edge (32 pixels of side border). */
 const DISPLAY_LEFT = 32;
@@ -16,8 +10,6 @@ const DISPLAY_WIDTH = 320;
 const COLUMNS = 40;
 /** Sprite X coordinate 24 is the left edge of the display window. */
 const SPRITE_X_OFFSET = DISPLAY_LEFT - 24;
-/** A PAL line is 504 pixels wide; larger sprite X values wrap around to the left. */
-const SPRITE_X_WRAP = 0x1f8;
 const SPRITE_ROWS = 21;
 const SPRITE_COUNT = 8;
 const SPRITE_POINTERS = 0x3f8;
@@ -76,17 +68,20 @@ export interface VicMemory {
 }
 
 /**
- * MOS 6569 (PAL) VIC-II, emulated a raster line at a time. Implements the
+ * The VIC-II (6569 PAL or 6567R8 NTSC), emulated a raster line at a time. Implements the
  * display/idle state machine with its row counters, all graphics modes,
  * sprites with priorities and collisions, the vertical border flip-flop, the
  * raster interrupt, and the CPU stalls caused by badlines and sprite fetches.
  * Register changes take effect at line granularity.
  */
 export class Vic2 implements IoDevice {
-  readonly framebuffer = new Uint32Array(FRAME_WIDTH * FRAME_HEIGHT);
+  /** FRAME_WIDTH x `model.visibleLines` pixels. */
+  framebuffer = new Uint32Array(FRAME_WIDTH * PAL.visibleLines);
+  /** Counts passes through raster line 0. */
   frameCount = 0;
-  /** Called when the last raster line of a frame has been drawn. */
+  /** Called when the last visible line of a picture has been drawn. */
   onFrameComplete: ((framebuffer: Uint32Array) => void) | null = null;
+  private videoModel = PAL;
 
   private readonly registers = new Uint8Array(0x40);
   private raster = 0;
@@ -122,6 +117,17 @@ export class Vic2 implements IoDevice {
 
   constructor(private readonly memory: VicMemory) {}
 
+  get model(): VideoModel {
+    return this.videoModel;
+  }
+
+  /** Swaps the chip for the PAL or NTSC version (the picture changes size) and resets it. */
+  setModel(model: VideoModel): void {
+    this.videoModel = model;
+    this.framebuffer = new Uint32Array(FRAME_WIDTH * model.visibleLines);
+    this.reset();
+  }
+
   reset(): void {
     this.registers.fill(0);
     this.raster = 0;
@@ -152,8 +158,9 @@ export class Vic2 implements IoDevice {
 
   tick(cycles: number): void {
     this.lineCycle += cycles;
-    while (this.lineCycle >= CYCLES_PER_LINE) {
-      this.lineCycle -= CYCLES_PER_LINE;
+    const cyclesPerLine = this.videoModel.cyclesPerLine;
+    while (this.lineCycle >= cyclesPerLine) {
+      this.lineCycle -= cyclesPerLine;
       this.finishLine();
     }
   }
@@ -238,10 +245,9 @@ export class Vic2 implements IoDevice {
     this.advanceRowCounters();
 
     this.raster++;
-    if (this.raster === LINES_PER_FRAME) {
+    if (this.raster === this.videoModel.linesPerFrame) {
       this.raster = 0;
       this.frameCount++;
-      this.onFrameComplete?.(this.framebuffer);
     }
     if (this.raster === this.rasterCompare) this.irqFlags |= IRQ_RASTER;
     this.beginLine(this.raster);
@@ -310,8 +316,9 @@ export class Vic2 implements IoDevice {
   // --- Rendering -------------------------------------------------------------------
 
   private renderLine(line: number): void {
-    const y = line - FIRST_VISIBLE_LINE;
-    if (y < 0 || y >= FRAME_HEIGHT) return;
+    const { firstVisibleLine, linesPerFrame, visibleLines } = this.videoModel;
+    const y = (line - firstVisibleLine + linesPerFrame) % linesPerFrame;
+    if (y >= visibleLines) return;
 
     const regs = this.registers;
     this.pixelColor.fill(regs[REG_BACKGROUND0] & 0x0f);
@@ -334,6 +341,7 @@ export class Vic2 implements IoDevice {
     const rowStart = y * FRAME_WIDTH;
     const colors = this.pixelColor;
     for (let x = 0; x < FRAME_WIDTH; x++) fb[rowStart + x] = PALETTE_ABGR[colors[x]];
+    if (y === visibleLines - 1) this.onFrameComplete?.(fb);
   }
 
   /** Draws the 40 columns of text or bitmap graphics for the current line. */
@@ -449,7 +457,7 @@ export class Vic2 implements IoDevice {
       if (data === 0) continue;
 
       let spriteX = regs[sprite * 2] | (regs[REG_SPRITE_X_MSB] & bit ? 0x100 : 0);
-      if (spriteX >= SPRITE_X_WRAP) spriteX -= SPRITE_X_WRAP;
+      if (spriteX >= this.videoModel.spriteXWrap) spriteX -= this.videoModel.spriteXWrap;
       const startX = spriteX + SPRITE_X_OFFSET;
       const width = regs[REG_SPRITE_EXPAND_X] & bit ? 2 : 1;
       const isMulticolor = (regs[REG_SPRITE_MULTICOLOR] & bit) !== 0;

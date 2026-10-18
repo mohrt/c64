@@ -1,6 +1,6 @@
 # C64 in the browser
 
-A Commodore 64 emulator written from scratch in TypeScript: 6510 CPU, VIC-II, SID sound, CIAs, a cycle-synchronised 1541 disk drive, cartridges, joystick, mouse and keyboard. Drop a `.d64`, `.prg`, `.t64` or `.crt` file (or a `.zip` containing one) onto the page to run it.
+A Commodore 64 emulator written from scratch in TypeScript: 6510 CPU, VIC-II, SID sound, CIAs, a cycle-synchronised 1541 disk drive, cartridges, joystick, mouse and keyboard. Drop a `.d64`, `.prg`, `.t64` or `.crt` file (or a `.zip` containing one) onto the page to run it. The toolbar switches between a PAL and an NTSC machine; some games and fast loaders only work on one of them.
 
 ## Keys
 

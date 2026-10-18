@@ -1,7 +1,7 @@
 import type { ControlPort } from '../io/control-port';
 import type { IoDevice } from '../memory/bus';
 
-const SID_CLOCK_HZ = 985_248;
+const PAL_CLOCK_HZ = 985_248;
 /** The chip is simulated in steps of this many cycles (about 246 kHz). */
 const STEP_CYCLES = 4;
 const DEFAULT_SAMPLE_RATE = 44_100;
@@ -220,6 +220,8 @@ export class Sid implements IoDevice {
   private filterDamping = 0;
 
   private sampleRate = DEFAULT_SAMPLE_RATE;
+  /** The system clock driving the chip; pitches and envelope times follow it. */
+  private clockHz = PAL_CLOCK_HZ;
   private samplePhase = 0;
   private sampleSum = 0;
   private sampleCount = 0;
@@ -241,6 +243,11 @@ export class Sid implements IoDevice {
 
   setSampleRate(rate: number): void {
     this.sampleRate = rate;
+  }
+
+  setClockRate(hz: number): void {
+    this.clockHz = hz;
+    this.updateFilterCoefficients();
   }
 
   reset(): void {
@@ -375,7 +382,7 @@ export class Sid implements IoDevice {
 
   private updateFilterCoefficients(): void {
     const cutoffHz = 30 + (this.cutoff / 0x7ff) * 12_000;
-    this.filterCoefficient = 2 * Math.sin((Math.PI * cutoffHz * STEP_CYCLES) / SID_CLOCK_HZ);
+    this.filterCoefficient = 2 * Math.sin((Math.PI * cutoffHz * STEP_CYCLES) / this.clockHz);
     this.filterDamping = 1.4 - this.resonance / 15;
   }
 
@@ -396,7 +403,7 @@ export class Sid implements IoDevice {
   private accumulateSample(value: number): void {
     this.sampleSum += value;
     this.sampleCount++;
-    this.samplePhase += (this.sampleRate * STEP_CYCLES) / SID_CLOCK_HZ;
+    this.samplePhase += (this.sampleRate * STEP_CYCLES) / this.clockHz;
     if (this.samplePhase < 1) return;
     this.samplePhase -= 1;
 
