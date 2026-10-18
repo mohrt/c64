@@ -13,6 +13,7 @@ No ROM or game files are included in this repository.
 - **Open ROMs** (MEGA65, LGPL) are downloaded with `npm run fetch:roms`. They boot to BASIC.
 - **System ROMs**: for the full machine, download the C64 system ROMs and the 1541 drive ROM yourself and place them in `public/roms/system/` as `basic.rom`, `kernal.rom`, `chargen.rom` and `dos1541.rom`. When present they are used instead of the Open ROMs, and the 1541 ROM enables accurate drive emulation (needed for most games with fast loaders).
 - **Games**: download disk, tape or cartridge images yourself and drop them onto the page. They stay in your browser and are never uploaded.
+- **Offering games on your own site**: put freely distributable games in `public/games/` with an `index.json` such as `{ "games": [{ "title": "Some Game", "file": "some-game.d64" }] }`, and they appear in a "Free games" picker.
 
 ## Development
 

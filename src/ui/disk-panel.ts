@@ -31,6 +31,8 @@ export interface DiskPanelCallbacks {
   onInsertSaveDisk(id: string): Promise<string>;
   onExportSaveDisk(id: string): Promise<void>;
   onDeleteSaveDisk(id: string): Promise<void>;
+  /** Downloads one of the games offered with `setGames`, by its position in the list. */
+  onGame(index: number): Promise<File>;
   /** Gives keyboard focus back to the emulator screen. */
   focusScreen(): void;
 }
@@ -64,6 +66,8 @@ export class DiskPanel {
   private readonly saveDiskSelect: HTMLSelectElement;
   private readonly zipFiles: HTMLElement;
   private readonly zipButtons: HTMLElement;
+  private readonly bundledGames: HTMLElement;
+  private readonly gameSelect: HTMLSelectElement;
   /** dragenter/dragleave fire for every child element, so count them. */
   private dragDepth = 0;
 
@@ -88,6 +92,11 @@ export class DiskPanel {
     this.saveDiskSelect = requireChild(root, 'select[name="save-disk"]');
     this.zipFiles = requireChild(root, '.zip-files');
     this.zipButtons = requireChild(root, '.zip-buttons');
+    this.bundledGames = requireChild(root, '.bundled-games');
+    this.gameSelect = requireChild(root, 'select[name="bundled-game"]');
+    this.onClick('play-game', async () => {
+      if (this.gameSelect.value) await this.insert(await this.callbacks.onGame(Number(this.gameSelect.value)));
+    });
 
     const selectedSaveDisk = () => this.saveDiskSelect.value;
     this.onClick('revert', async () => {
@@ -199,6 +208,19 @@ export class DiskPanel {
       }),
     );
     this.saveDiskList.hidden = disks.length === 0;
+  }
+
+  /** Lists the games the site offers (an empty list hides the row). */
+  setGames(titles: string[]): void {
+    this.gameSelect.replaceChildren(
+      ...titles.map((title, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = title;
+        return option;
+      }),
+    );
+    this.bundledGames.hidden = titles.length === 0;
   }
 
   /** Offers the other usable files from a dropped zip as buttons (an empty list hides the row). */

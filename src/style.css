@@ -334,7 +334,8 @@ main {
   gap: 0.4rem;
 }
 
-.save-disks select {
+.save-disks select,
+.bundled-games select {
   padding: 0.35rem 0.4rem;
   border: 1px solid #555;
   border-radius: 6px;
@@ -360,7 +361,8 @@ main {
   display: none;
 }
 
-.zip-files:not([hidden]) {
+.zip-files:not([hidden]),
+.bundled-games:not([hidden]) {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -381,7 +383,8 @@ main {
   border-color: var(--accent);
 }
 
-.disk-panel.drag-over .zip-files {
+.disk-panel.drag-over .zip-files,
+.disk-panel.drag-over .bundled-games {
   display: none;
 }
 

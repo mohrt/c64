@@ -8,6 +8,7 @@ import { D64Image } from './disk/d64';
 import { mediaToD64 } from './disk/d64-builder';
 import { isT64, t64ToD64 } from './disk/t64';
 import { isZip, usableFilesInZip } from './disk/zip';
+import { fetchGame, loadGameManifest, type BundledGame } from './games';
 import { DiskSaves, type DiskSaveRecord, type SaveDiskRecord } from './storage/disk-saves';
 import { memoryStores, openBrowserStores, type KeyValueStore } from './storage/store';
 import {
@@ -329,7 +330,9 @@ async function main(): Promise<void> {
       return { kind: 'disk', name: diskLabel, hasSavedChanges };
     };
 
+    let bundledGames: BundledGame[] = [];
     const diskPanel = new DiskPanel(diskPanelRoot, {
+      onGame: (index) => fetchGame(import.meta.env.BASE_URL, bundledGames[index]),
       onFile: async (file) => {
         const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
         if (!isZip(head) && !file.name.toLowerCase().endsWith('.zip')) return insertFile(file);
@@ -391,6 +394,10 @@ async function main(): Promise<void> {
     });
     if (settings.get('drive-mode') === 'fast') c64.setDriveMode('fast');
     diskPanel.configureDrive(c64.driveMode, c64.drive1541 !== null);
+    void loadGameManifest(import.meta.env.BASE_URL).then((games) => {
+      bundledGames = games;
+      diskPanel.setGames(games.map((game) => game.title));
+    });
 
     const refreshStates = async () => toolbar.setStates(await saveStates.list());
     const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'c64';
