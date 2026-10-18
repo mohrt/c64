@@ -8,9 +8,19 @@
   </head>
   <body>
     <main>
-      <canvas id="screen" width="384" height="272" tabindex="0"></canvas>
+      <div class="screen-frame">
+        <canvas id="screen" width="384" height="272" tabindex="0"></canvas>
+        <p class="paused-label">Paused</p>
+      </div>
 
       <section id="toolbar" class="toolbar" aria-label="Emulator">
+        <span class="toolbar-group">
+          <button type="button" data-action="pause">Pause</button>
+          <button type="button" data-action="reset" title="Restart the C64, keeping the disk and cartridge in">
+            Reset C64
+          </button>
+          <button type="button" data-action="fullscreen" title="Esc leaves full screen">Full screen</button>
+        </span>
         <span class="toolbar-group">
           <button type="button" data-action="save-state" title="Save the whole machine, to come back to later">
             Save state
@@ -43,7 +53,6 @@
             <button type="button" data-action="revert" hidden title="Forget the games saved to this disk">
               Revert to original
             </button>
-            <button type="button" data-action="reset">Reset C64</button>
           </div>
         </div>
         <div class="save-disks">

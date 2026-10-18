@@ -1,5 +1,7 @@
 :root {
-  --screen-width: min(96vw, calc(72vh * 384 / 272));
+  /* 384 x 272 pixels, which are slightly narrower than tall on a PAL TV (0.936 : 1). */
+  --screen-aspect: 1.3214;
+  --screen-width: min(96vw, calc(72vh * var(--screen-aspect)));
   --accent: #7c70da;
 }
 
@@ -23,11 +25,44 @@ main {
   box-sizing: border-box;
 }
 
+.screen-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 #screen {
+  display: block;
   width: var(--screen-width);
-  aspect-ratio: 384 / 272;
+  aspect-ratio: var(--screen-aspect);
   image-rendering: pixelated;
   outline: none;
+}
+
+.screen-frame:fullscreen {
+  background: #000;
+}
+
+.screen-frame:fullscreen #screen {
+  width: min(100vw, calc(100vh * var(--screen-aspect)));
+}
+
+.paused-label {
+  display: none;
+  position: absolute;
+  margin: 0;
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 70%);
+  color: #fff;
+  font-size: 1.2rem;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+.screen-frame.paused .paused-label {
+  display: block;
 }
 
 #status {

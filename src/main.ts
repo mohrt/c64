@@ -36,6 +36,20 @@ import type { Roms } from './memory/bus';
 import { Screen } from './render/screen';
 import { attachControlsPanel, type PortNumber } from './ui/controls-panel';
 import { DiskPanel, type InsertedMedia } from './ui/disk-panel';
+import { Settings } from './ui/settings';
+
+/** Form fields whose values are remembered between visits. */
+const REMEMBERED_SETTINGS = [
+  'drive-mode',
+  'warp',
+  'autostart',
+  'joystick-port',
+  'arrow-joystick',
+  'second-joystick',
+  'mouse-port',
+  'sound',
+  'volume',
+];
 
 /** Longest gap we catch up on, so a backgrounded tab doesn't run a burst of frames. */
 const MAX_CATCH_UP_MS = 100;
@@ -113,6 +127,7 @@ async function readMedia(file: File): Promise<Media> {
 }
 
 interface LoopOptions {
+  paused: () => boolean;
   gamepads: GamepadJoystick[];
   /** Whether to run flat out while the disk drive is busy. */
   warp: () => boolean;
@@ -133,6 +148,11 @@ function startLoop(c64: C64, screen: Screen, options: LoopOptions): void {
   const frame = (now: number) => {
     const elapsed = Math.min(now - lastTime, MAX_CATCH_UP_MS);
     lastTime = now;
+    if (options.paused()) {
+      cycleDebt = 0;
+      requestAnimationFrame(frame);
+      return;
+    }
     options.gamepads.forEach((gamepad) => gamepad.poll());
     const warpNow = options.warp() && c64.driveBusy;
     if (warpNow) {
@@ -178,11 +198,13 @@ async function main(): Promise<void> {
   const diskPanelRoot = requireElement<HTMLElement>('#disk-panel');
   const controlsRoot = requireElement<HTMLElement>('#controls');
   const toolbarRoot = requireElement<HTMLElement>('#toolbar');
+  const screenFrame = requireElement<HTMLElement>('.screen-frame');
 
   try {
     const romSet = await loadRomSet();
     const c64 = new C64(romSet.roms, romSet.driveRom ?? undefined);
     let warp = true;
+    let paused = false;
     const audio = await AudioOutput.create().catch((error: unknown) => {
       console.warn('Audio is unavailable:', error);
       return null;
@@ -201,6 +223,8 @@ async function main(): Promise<void> {
     joystick1Keys.setKeys(NUMPAD_KEYS);
     const gamepads = [new GamepadJoystick(c64.port2, 0), new GamepadJoystick(c64.port1, 1)];
     const mouse = new Mouse1351(canvas);
+    const settings = new Settings();
+    settings.bind(document, REMEMBERED_SETTINGS);
     new BrowserKeyboard(
       c64.keyboard,
       () => c64.pressRestore(),
@@ -346,20 +370,31 @@ async function main(): Promise<void> {
         autostart.cancel();
         c64.insertCartridge(null);
       },
-      onReset: () => {
-        autostart.cancel();
-        c64.reset();
-      },
       onDriveMode: (mode) => c64.setDriveMode(mode),
       onWarp: (enabled) => (warp = enabled),
       onAutostart: (enabled) => (autostartEnabled = enabled),
       focusScreen: () => canvas.focus(),
     });
+    if (settings.get('drive-mode') === 'fast') c64.setDriveMode('fast');
     diskPanel.configureDrive(c64.driveMode, c64.drive1541 !== null);
 
     const refreshStates = async () => toolbar.setStates(await saveStates.list());
     const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'c64';
     const toolbar = attachToolbar(toolbarRoot, {
+      onPause: (pause) => {
+        paused = pause;
+        screenFrame.classList.toggle('paused', pause);
+        audio?.flush();
+      },
+      onReset: () => {
+        autostart.cancel();
+        c64.reset();
+        diskPanel.showMessage('');
+      },
+      onFullscreen: () => {
+        if (document.fullscreenElement) void document.exitFullscreen();
+        else void screenFrame.requestFullscreen().then(() => canvas.focus());
+      },
       onSaveState: async () => {
         await persistDisk();
         await saveStates.add(sessionName(), currentSession());
@@ -405,6 +440,7 @@ async function main(): Promise<void> {
     canvas.focus();
     status.textContent = `${romSet.label}. Esc = RUN/STOP, Tab = CTRL, Alt = C=, PgUp = RESTORE`;
     startLoop(c64, screen, {
+      paused: () => paused,
       gamepads,
       warp: () => warp,
       onDriveLed: (on) => diskPanel.setLed(on),

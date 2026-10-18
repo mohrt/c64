@@ -20,8 +20,6 @@ export interface DiskPanelCallbacks {
   onFile(file: File): Promise<InsertedMedia>;
   onEject(): void;
   onRemoveCartridge(): void;
-  /** Resets the computer, keeping the disk in the drive. */
-  onReset(): void;
   onDriveMode(mode: DriveModeChoice): void;
   onWarp(enabled: boolean): void;
   onAutostart(enabled: boolean): void;
@@ -136,8 +134,6 @@ export class DiskPanel {
       button.addEventListener('click', () => this.input.click()),
     );
     requireChild<HTMLButtonElement>(root, '[data-action="eject"]').addEventListener('click', () => this.eject());
-    requireChild<HTMLButtonElement>(root, '[data-action="reset"]').addEventListener('click', () => this.reset());
-
     this.input.addEventListener('change', () => {
       const file = this.input.files?.[0];
       this.input.value = '';
@@ -255,12 +251,6 @@ export class DiskPanel {
     this.callbacks.onEject();
     this.message.textContent = '';
     this.root.dataset.state = 'empty';
-    this.callbacks.focusScreen();
-  }
-
-  private reset(): void {
-    this.callbacks.onReset();
-    this.message.textContent = '';
     this.callbacks.focusScreen();
   }
 

@@ -1,6 +1,10 @@
 # C64 in the browser
 
-A Commodore 64 emulator written from scratch in TypeScript: 6510 CPU, VIC-II, SID sound, CIAs, a cycle-synchronised 1541 disk drive, cartridges, joystick, mouse and keyboard. Drop a `.d64`, `.prg`, `.t64` or `.crt` file onto the page to run it.
+A Commodore 64 emulator written from scratch in TypeScript: 6510 CPU, VIC-II, SID sound, CIAs, a cycle-synchronised 1541 disk drive, cartridges, joystick, mouse and keyboard. Drop a `.d64`, `.prg`, `.t64` or `.crt` file (or a `.zip` containing one) onto the page to run it.
+
+## Keys
+
+Esc is RUN/STOP, Tab is CTRL, Alt is the Commodore key, Page Up is RESTORE and Caps Lock is SHIFT LOCK. Characters type as labelled on your keyboard (`"` gives `"` even though the C64 has it on Shift+2), F1-F8 are the function keys, and the numpad is joystick 1. Settings are remembered between visits.
 
 ## ROMs and games
 

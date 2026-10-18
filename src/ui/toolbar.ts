@@ -1,6 +1,10 @@
 import type { SaveStateInfo } from '../storage/save-states';
 
 export interface ToolbarCallbacks {
+  onPause(paused: boolean): void;
+  /** Resets the computer, keeping the disk and cartridge inserted. */
+  onReset(): void;
+  onFullscreen(): void;
   onSaveState(): Promise<void>;
   onLoadState(id: string): Promise<void>;
   onDeleteState(id: string): Promise<void>;
@@ -47,6 +51,16 @@ export function attachToolbar(root: HTMLElement, callbacks: ToolbarCallbacks): T
   };
   const onClick = (action: string, handler: () => Promise<void>) =>
     requireChild<HTMLButtonElement>(root, `[data-action="${action}"]`).addEventListener('click', () => run(handler));
+
+  const pauseButton = requireChild<HTMLButtonElement>(root, '[data-action="pause"]');
+  let paused = false;
+  onClick('pause', async () => {
+    paused = !paused;
+    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+    callbacks.onPause(paused);
+  });
+  onClick('reset', async () => callbacks.onReset());
+  onClick('fullscreen', async () => callbacks.onFullscreen());
 
   onClick('save-state', () => callbacks.onSaveState());
   onClick('load-state', async () => {

@@ -153,6 +153,8 @@ export class BrowserKeyboard {
   private readonly active = new Map<string, Mapping>();
   private readonly pressedAt = new Map<string, number>();
   private readonly pendingReleases = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Caps Lock acts as the C64's SHIFT LOCK, which holds down the left SHIFT key. */
+  private shiftLocked = false;
 
   constructor(
     private readonly matrix: KeyboardMatrix,
@@ -170,6 +172,7 @@ export class BrowserKeyboard {
   }
 
   private onKeyDown(event: KeyboardEvent): void {
+    this.updateShiftLock(event);
     if (event.metaKey || event.ctrlKey || isPageControl(event.target)) return;
     if (this.interceptor?.handle(event, true)) {
       event.preventDefault();
@@ -192,6 +195,7 @@ export class BrowserKeyboard {
   }
 
   private onKeyUp(event: KeyboardEvent): void {
+    this.updateShiftLock(event);
     if (this.interceptor?.handle(event, false)) {
       event.preventDefault();
       return;
@@ -205,6 +209,14 @@ export class BrowserKeyboard {
     } else {
       this.release(code);
     }
+  }
+
+  /** Browsers only report the Caps Lock state on events, so it is picked up from each key event. */
+  private updateShiftLock(event: KeyboardEvent): void {
+    const locked = event.getModifierState('CapsLock');
+    if (locked === this.shiftLocked) return;
+    this.shiftLocked = locked;
+    this.rebuild();
   }
 
   private release(code: string): void {
@@ -235,6 +247,7 @@ export class BrowserKeyboard {
       for (const key of mapping.keys) this.matrix.press(key);
       if (mapping.shift !== 'keep') shift = mapping.shift;
     }
+    if (this.shiftLocked) this.matrix.press(Key.LeftShift);
     if (shift === 'add') {
       this.matrix.press(Key.LeftShift);
     } else if (shift === 'remove') {
