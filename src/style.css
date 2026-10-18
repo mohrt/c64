@@ -35,6 +35,62 @@ main {
   font-size: 0.85rem;
 }
 
+/* Toolbar */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  width: var(--screen-width);
+}
+
+.toolbar-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.toolbar button,
+.toolbar select {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.toolbar select {
+  max-width: 16rem;
+  padding: 0.35rem 0.4rem;
+}
+
+.toolbar button:hover,
+.toolbar button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.toolbar button:disabled,
+.toolbar select:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.toolbar-message {
+  font-size: 0.85rem;
+  color: #9ad284;
+}
+
+.toolbar-message.error {
+  color: #ff8a80;
+}
+
 /* Controls */
 
 .controls {

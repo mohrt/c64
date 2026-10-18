@@ -60,6 +60,11 @@ type DiskOrigin =
   | { kind: 'image'; key: string; name: string; original: Uint8Array }
   | { kind: 'saveDisk'; id: string; record: SaveDiskRecord };
 
+/** A storable reference to where the inserted disk's saves go (kept in save states). */
+export type DiskOriginRef =
+  | { kind: 'image'; key: string; name: string; original: Uint8Array }
+  | { kind: 'saveDisk'; id: string };
+
 /**
  * Keeps games' saves in browser storage without ever modifying the user's disk
  * image: for a dropped image only the changed sectors are stored, keyed by a
@@ -145,5 +150,23 @@ export class DiskSaves {
 
   eject(): void {
     this.origin = null;
+  }
+
+  get originRef(): DiskOriginRef | null {
+    const origin = this.origin;
+    if (!origin) return null;
+    return origin.kind === 'image' ? origin : { kind: 'saveDisk', id: origin.id };
+  }
+
+  /** Makes later saves go where a restored save state's disk came from. */
+  async adopt(ref: DiskOriginRef | null): Promise<void> {
+    if (!ref) {
+      this.origin = null;
+    } else if (ref.kind === 'image') {
+      this.origin = ref;
+    } else {
+      const record = await this.saveDisks.get(ref.id);
+      this.origin = record ? { kind: 'saveDisk', id: ref.id, record } : null;
+    }
   }
 }

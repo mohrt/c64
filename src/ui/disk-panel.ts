@@ -2,7 +2,7 @@ export type DriveModeChoice = 'accurate' | 'fast';
 
 /** What a dropped or chosen file turned out to be, and the name to show for it. */
 export interface InsertedMedia {
-  kind: 'disk' | 'cartridge';
+  kind: 'disk' | 'cartridge' | 'state';
   name: string;
   /** For disks: whether games' saves from earlier sessions were re-applied. */
   hasSavedChanges?: boolean;
@@ -175,6 +175,11 @@ export class DiskPanel {
     this.setSavedChanges(hasSavedChanges);
   }
 
+  showEmpty(): void {
+    this.root.dataset.state = 'empty';
+    this.setSavedChanges(false);
+  }
+
   /** Marks whether games have saved to the inserted (dropped) disk image. */
   setSavedChanges(saved: boolean): void {
     this.savedMarker.hidden = !saved;
@@ -210,7 +215,7 @@ export class DiskPanel {
       if (media.kind === 'cartridge') {
         this.cartName.textContent = `${media.name} (${file.name})`;
         this.cartSlot.hidden = false;
-      } else {
+      } else if (media.kind === 'disk') {
         this.showDisk(media.name, file.name, media.hasSavedChanges);
       }
       this.message.textContent = '';

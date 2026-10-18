@@ -1,7 +1,7 @@
 import type { Cartridge } from './cartridge/cartridge';
 import { Cia } from './cia/cia';
 import { Cpu6510 } from './cpu/cpu6510';
-import type { D64Image } from './disk/d64';
+import { D64Image } from './disk/d64';
 import { mediaToD64 } from './disk/d64-builder';
 import { IecTraps } from './disk/iec-traps';
 import type { DiskMedia } from './disk/media';
@@ -13,6 +13,7 @@ import { ControlPort } from './io/control-port';
 import { KeyboardMatrix } from './io/keyboard';
 import { Bus, type Roms } from './memory/bus';
 import { Sid } from './sid/sid';
+import { captureState, restoreState, type StateNode } from './state/snapshot';
 import { Vic2 } from './vic/vic2';
 
 /** PAL system clock in Hz. */
@@ -35,6 +36,19 @@ const CIA2_DATA_IN = 0x80;
 /** How far past "now" the C64's serial outputs are certain not to change. */
 const C64_STATE_SETTLED_AFTER_STEP = 1;
 const C64_STATE_SETTLED_AFTER_READ = 2;
+
+const STATE_VERSION = 1;
+
+/** A complete snapshot of the machine, as produced by `C64.saveState()`. */
+export interface MachineState {
+  version: number;
+  chips: StateNode;
+  /** The inserted disk (including what programs wrote to it), if any. */
+  disk: { bytes: Uint8Array; writable: boolean } | null;
+  /** ROM contents aren't stored, so the same cartridge must be plugged in to load the state. */
+  cartridgeName: string | null;
+  hasDrive: boolean;
+}
 
 /** A PAL Commodore 64 with a 1541 disk drive (accurate or virtual) as device 8, and no cartridge. */
 export class C64 {
@@ -137,6 +151,32 @@ export class C64 {
   get diskImage(): D64Image | null {
     this.syncDisk();
     return this.disk;
+  }
+
+  saveState(): MachineState {
+    this.syncDisk();
+    return {
+      version: STATE_VERSION,
+      chips: captureState(this),
+      disk: this.disk ? { bytes: this.disk.bytes, writable: !(this.gcrDisk?.writeProtected ?? true) } : null,
+      cartridgeName: this.bus.cartridgeName,
+      hasDrive: this.drive1541 !== null,
+    };
+  }
+
+  /** Restores a snapshot. Throws if it needs a cartridge or drive this machine doesn't have. */
+  loadState(state: MachineState): void {
+    if (state.version !== STATE_VERSION) throw new Error('This save state was made by a different version.');
+    if (state.cartridgeName !== this.bus.cartridgeName) {
+      throw new Error(
+        state.cartridgeName
+          ? `This save state needs the cartridge "${state.cartridgeName}" plugged in.`
+          : 'Remove the cartridge to load this save state.',
+      );
+    }
+    if (state.hasDrive && !this.drive1541) throw new Error('This save state needs the 1541 drive ROM.');
+    this.insertDisk(state.disk ? new D64Image(state.disk.bytes.slice()) : null, { writable: state.disk?.writable });
+    restoreState(this, state.chips);
   }
 
   /** Copies sectors the 1541 has written back into the disk image; true if anything changed. */

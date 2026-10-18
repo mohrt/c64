@@ -10,6 +10,21 @@
     <main>
       <canvas id="screen" width="384" height="272" tabindex="0"></canvas>
 
+      <section id="toolbar" class="toolbar" aria-label="Emulator">
+        <span class="toolbar-group">
+          <button type="button" data-action="save-state" title="Save the whole machine, to come back to later">
+            Save state
+          </button>
+          <select name="state-slot" aria-label="Save states"></select>
+          <button type="button" data-action="load-state">Load</button>
+          <button type="button" data-action="delete-state">Delete</button>
+          <button type="button" data-action="export-state" title="Download the current state as a file">Export</button>
+          <button type="button" data-action="import-state">Import...</button>
+        </span>
+        <span class="toolbar-message" role="status"></span>
+        <input type="file" name="state-file" accept=".c64state" hidden />
+      </section>
+
       <section id="disk-panel" class="disk-panel" data-state="empty" aria-label="Disk drive 8">
         <div class="disk-empty">
           <p class="disk-title">Drop a .d64, .prg, .t64 or .crt file here</p>
@@ -67,7 +82,7 @@
             <span class="disk-hint">or type <code>LOAD"*",8,1</code>, Return, then <code>RUN</code></span>
           </span>
         </div>
-        <input type="file" accept=".d64,.prg,.t64,.crt" hidden />
+        <input type="file" accept=".d64,.prg,.t64,.crt,.c64state" hidden />
       </section>
 
       <section id="controls" class="controls" aria-label="Controllers">

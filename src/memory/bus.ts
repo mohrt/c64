@@ -65,6 +65,10 @@ export class Bus implements CpuBus {
     return this.pages[0xe] === Region.Kernal;
   }
 
+  get cartridgeName(): string | null {
+    return this.cartridge?.name ?? null;
+  }
+
   get basicVisible(): boolean {
     return this.pages[0xa] === Region.Basic;
   }

@@ -9,7 +9,16 @@ import { mediaToD64 } from './disk/d64-builder';
 import { isT64, t64ToD64 } from './disk/t64';
 import { DiskSaves, type DiskSaveRecord, type SaveDiskRecord } from './storage/disk-saves';
 import { memoryStores, openBrowserStores, type KeyValueStore } from './storage/store';
+import {
+  SaveStates,
+  decodeSession,
+  encodeSession,
+  looksLikeSaveState,
+  type SaveStateRecord,
+  type Session,
+} from './storage/save-states';
 import { downloadFile } from './ui/download';
+import { attachToolbar } from './ui/toolbar';
 import { petsciiToText, type DiskMedia } from './disk/media';
 import { PrgMedia } from './disk/prg-media';
 import {
@@ -79,12 +88,16 @@ async function loadRomSet(): Promise<RomSet> {
   }
 }
 
-type Media = { kind: 'disk'; disk: DiskMedia } | { kind: 'cartridge'; cartridge: Cartridge };
+type Media =
+  | { kind: 'disk'; disk: DiskMedia }
+  | { kind: 'cartridge'; cartridge: Cartridge }
+  | { kind: 'state'; session: Session };
 
 /** Works out what a file is from its contents (falling back to the extension). */
 async function readMedia(file: File): Promise<Media> {
   const data = new Uint8Array(await file.arrayBuffer());
   const name = file.name.toLowerCase();
+  if (name.endsWith('.c64state') || looksLikeSaveState(data)) return { kind: 'state', session: await decodeSession(data) };
   if (isCrt(data)) return { kind: 'cartridge', cartridge: createCartridge(parseCrt(data)) };
   if (name.endsWith('.t64') || isT64(data)) return { kind: 'disk', disk: t64ToD64(data) };
   if (name.endsWith('.prg')) return { kind: 'disk', disk: new PrgMedia(file.name, data) };
@@ -163,6 +176,7 @@ async function main(): Promise<void> {
   const status = requireElement<HTMLParagraphElement>('#status');
   const diskPanelRoot = requireElement<HTMLElement>('#disk-panel');
   const controlsRoot = requireElement<HTMLElement>('#controls');
+  const toolbarRoot = requireElement<HTMLElement>('#toolbar');
 
   try {
     const romSet = await loadRomSet();
@@ -234,10 +248,32 @@ async function main(): Promise<void> {
       else diskPanel.setSavedChanges(true);
     };
     const insertWritable = (image: D64Image) => c64.insertDisk(image, { writable: true });
+    /** The name shown for the inserted disk (also used to label save states). */
+    let diskLabel: string | null = null;
+
+    const saveStates = new SaveStates(stores.saveStates as KeyValueStore<SaveStateRecord>);
+    const sessionName = () => c64.bus.cartridgeName ?? diskLabel ?? 'BASIC';
+    const currentSession = (): Session => ({ machine: c64.saveState(), diskOrigin: diskSaves.originRef, diskLabel });
+    const restoreSession = async (session: Session) => {
+      autostart.cancel();
+      await persistDisk();
+      c64.loadState(session.machine);
+      await diskSaves.adopt(session.diskOrigin);
+      diskLabel = session.diskLabel;
+      if (session.machine.disk) diskPanel.showDisk(diskLabel ?? 'Disk', 'from save state');
+      else diskPanel.showEmpty();
+      audio?.flush();
+      await refreshSaveDisks();
+    };
 
     const diskPanel = new DiskPanel(diskPanelRoot, {
       onFile: async (file) => {
         const media = await readMedia(file);
+        if (media.kind === 'state') {
+          await restoreSession(media.session);
+          toolbar.showMessage('Save state loaded');
+          return { kind: 'state', name: file.name };
+        }
         if (media.kind === 'cartridge') {
           autostart.cancel();
           c64.insertCartridge(media.cartridge);
@@ -250,12 +286,14 @@ async function main(): Promise<void> {
         insertWritable(image);
         if (startIt) autostart.start();
         await refreshSaveDisks();
-        return { kind: 'disk', name: petsciiToText(image.name).trim() || file.name, hasSavedChanges };
+        diskLabel = petsciiToText(image.name).trim() || file.name;
+        return { kind: 'disk', name: diskLabel, hasSavedChanges };
       },
       onEject: () => {
         void persistDisk().then(() => {
           diskSaves.eject();
           c64.insertDisk(null);
+          diskLabel = null;
           return refreshSaveDisks();
         });
       },
@@ -268,6 +306,7 @@ async function main(): Promise<void> {
         const { image, name } = await diskSaves.createSaveDisk();
         insertWritable(image);
         await refreshSaveDisks();
+        diskLabel = name;
         return name;
       },
       onInsertSaveDisk: async (id) => {
@@ -276,6 +315,7 @@ async function main(): Promise<void> {
         if (!disk) throw new Error('That save disk no longer exists.');
         insertWritable(disk.image);
         await refreshSaveDisks();
+        diskLabel = disk.name;
         return disk.name;
       },
       onExportSaveDisk: async (id) => {
@@ -304,6 +344,37 @@ async function main(): Promise<void> {
       focusScreen: () => canvas.focus(),
     });
     diskPanel.configureDrive(c64.driveMode, c64.drive1541 !== null);
+
+    const refreshStates = async () => toolbar.setStates(await saveStates.list());
+    const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'c64';
+    const toolbar = attachToolbar(toolbarRoot, {
+      onSaveState: async () => {
+        await persistDisk();
+        await saveStates.add(sessionName(), currentSession());
+        await refreshStates();
+        toolbar.showMessage('State saved');
+      },
+      onLoadState: async (id) => {
+        const session = await saveStates.load(id);
+        if (!session) throw new Error('That save state no longer exists.');
+        await restoreSession(session);
+        toolbar.showMessage('State loaded');
+      },
+      onDeleteState: async (id) => {
+        await saveStates.delete(id);
+        await refreshStates();
+      },
+      onExportState: async () => {
+        await persistDisk();
+        downloadFile(await encodeSession(currentSession()), `${slug(sessionName())}.c64state`);
+      },
+      onImportState: async (file) => {
+        await restoreSession(await decodeSession(new Uint8Array(await file.arrayBuffer())));
+        toolbar.showMessage('Save state loaded');
+      },
+      focusScreen: () => canvas.focus(),
+    });
+    await refreshStates();
     c64.drive.onUnsupported = (message) => {
       console.warn(`[drive 8] ${message}`);
       diskPanel.showMessage(
