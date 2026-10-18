@@ -325,6 +325,31 @@ main {
   display: none;
 }
 
+.zip-files:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem !important;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.zip-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.zip-buttons button.current {
+  border-color: var(--accent);
+}
+
+.disk-panel.drag-over .zip-files {
+  display: none;
+}
+
 .cart-slot {
   display: flex;
   justify-content: center;

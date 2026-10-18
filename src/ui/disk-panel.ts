@@ -6,6 +6,8 @@ export interface InsertedMedia {
   name: string;
   /** For disks: whether games' saves from earlier sessions were re-applied. */
   hasSavedChanges?: boolean;
+  /** The file name to show, when it differs from the dropped file (e.g. inside a zip). */
+  fileLabel?: string;
 }
 
 export interface SaveDiskOption {
@@ -62,6 +64,8 @@ export class DiskPanel {
   private readonly revertButton: HTMLButtonElement;
   private readonly saveDiskList: HTMLElement;
   private readonly saveDiskSelect: HTMLSelectElement;
+  private readonly zipFiles: HTMLElement;
+  private readonly zipButtons: HTMLElement;
   /** dragenter/dragleave fire for every child element, so count them. */
   private dragDepth = 0;
 
@@ -84,6 +88,8 @@ export class DiskPanel {
     this.revertButton = requireChild(root, '[data-action="revert"]');
     this.saveDiskList = requireChild(root, '.save-disk-list');
     this.saveDiskSelect = requireChild(root, 'select[name="save-disk"]');
+    this.zipFiles = requireChild(root, '.zip-files');
+    this.zipButtons = requireChild(root, '.zip-buttons');
 
     const selectedSaveDisk = () => this.saveDiskSelect.value;
     this.onClick('revert', async () => {
@@ -199,6 +205,24 @@ export class DiskPanel {
     this.saveDiskList.hidden = disks.length === 0;
   }
 
+  /** Offers the other usable files from a dropped zip as buttons (an empty list hides the row). */
+  setZipFiles(files: File[], currentName: string | null): void {
+    this.zipButtons.replaceChildren(
+      ...files.map((file) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = file.name;
+        button.classList.toggle('current', file.name === currentName);
+        button.addEventListener('click', () => {
+          this.zipButtons.querySelectorAll('button').forEach((other) => other.classList.toggle('current', other === button));
+          void this.insert(file, true);
+        });
+        return button;
+      }),
+    );
+    this.zipFiles.hidden = files.length < 2;
+  }
+
   /** Runs a button's async action, showing any error in the panel. */
   private onClick(action: string, run: () => Promise<void>): void {
     requireChild<HTMLButtonElement>(this.root, `[data-action="${action}"]`).addEventListener('click', () => {
@@ -209,14 +233,16 @@ export class DiskPanel {
     });
   }
 
-  private async insert(file: File): Promise<void> {
+  private async insert(file: File, fromZip = false): Promise<void> {
     try {
+      if (!fromZip) this.setZipFiles([], null);
       const media = await this.callbacks.onFile(file);
+      const label = media.fileLabel ?? file.name;
       if (media.kind === 'cartridge') {
-        this.cartName.textContent = `${media.name} (${file.name})`;
+        this.cartName.textContent = `${media.name} (${label})`;
         this.cartSlot.hidden = false;
       } else if (media.kind === 'disk') {
-        this.showDisk(media.name, file.name, media.hasSavedChanges);
+        this.showDisk(media.name, label, media.hasSavedChanges);
       }
       this.message.textContent = '';
       this.callbacks.focusScreen();

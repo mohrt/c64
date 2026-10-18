@@ -7,6 +7,7 @@ import { isCrt, parseCrt } from './cartridge/crt';
 import { D64Image } from './disk/d64';
 import { mediaToD64 } from './disk/d64-builder';
 import { isT64, t64ToD64 } from './disk/t64';
+import { isZip, usableFilesInZip } from './disk/zip';
 import { DiskSaves, type DiskSaveRecord, type SaveDiskRecord } from './storage/disk-saves';
 import { memoryStores, openBrowserStores, type KeyValueStore } from './storage/store';
 import {
@@ -34,7 +35,7 @@ import { Mouse1351 } from './io/mouse';
 import type { Roms } from './memory/bus';
 import { Screen } from './render/screen';
 import { attachControlsPanel, type PortNumber } from './ui/controls-panel';
-import { DiskPanel } from './ui/disk-panel';
+import { DiskPanel, type InsertedMedia } from './ui/disk-panel';
 
 /** Longest gap we catch up on, so a backgrounded tab doesn't run a burst of frames. */
 const MAX_CATCH_UP_MS = 100;
@@ -266,28 +267,39 @@ async function main(): Promise<void> {
       await refreshSaveDisks();
     };
 
+    /** Inserts a disk, tape, program or cartridge file, or loads a save state file. */
+    const insertFile = async (file: File): Promise<InsertedMedia> => {
+      const media = await readMedia(file);
+      if (media.kind === 'state') {
+        await restoreSession(media.session);
+        toolbar.showMessage('Save state loaded');
+        return { kind: 'state', name: file.name };
+      }
+      if (media.kind === 'cartridge') {
+        autostart.cancel();
+        c64.insertCartridge(media.cartridge);
+        return { kind: 'cartridge', name: media.cartridge.name || file.name };
+      }
+      await persistDisk();
+      const { image, hasSavedChanges } = await diskSaves.openImage(mediaToD64(media.disk).bytes, file.name);
+      // Only autostart from the READY prompt; mid-game this is a disk swap.
+      const startIt = autostartEnabled && atReadyPrompt(c64);
+      insertWritable(image);
+      if (startIt) autostart.start();
+      await refreshSaveDisks();
+      diskLabel = petsciiToText(image.name).trim() || file.name;
+      return { kind: 'disk', name: diskLabel, hasSavedChanges };
+    };
+
     const diskPanel = new DiskPanel(diskPanelRoot, {
       onFile: async (file) => {
-        const media = await readMedia(file);
-        if (media.kind === 'state') {
-          await restoreSession(media.session);
-          toolbar.showMessage('Save state loaded');
-          return { kind: 'state', name: file.name };
-        }
-        if (media.kind === 'cartridge') {
-          autostart.cancel();
-          c64.insertCartridge(media.cartridge);
-          return { kind: 'cartridge', name: media.cartridge.name || file.name };
-        }
-        await persistDisk();
-        const { image, hasSavedChanges } = await diskSaves.openImage(mediaToD64(media.disk).bytes, file.name);
-        // Only autostart from the READY prompt; mid-game this is a disk swap.
-        const startIt = autostartEnabled && atReadyPrompt(c64);
-        insertWritable(image);
-        if (startIt) autostart.start();
-        await refreshSaveDisks();
-        diskLabel = petsciiToText(image.name).trim() || file.name;
-        return { kind: 'disk', name: diskLabel, hasSavedChanges };
+        const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+        if (!isZip(head) && !file.name.toLowerCase().endsWith('.zip')) return insertFile(file);
+        const files = await usableFilesInZip(new Uint8Array(await file.arrayBuffer()));
+        if (files.length === 0) throw new Error(`${file.name} has no disk, tape, program or cartridge files in it.`);
+        diskPanel.setZipFiles(files, files[0].name);
+        const media = await insertFile(files[0]);
+        return { ...media, fileLabel: `${files[0].name} from ${file.name}` };
       },
       onEject: () => {
         void persistDisk().then(() => {

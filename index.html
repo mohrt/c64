@@ -27,7 +27,7 @@
 
       <section id="disk-panel" class="disk-panel" data-state="empty" aria-label="Disk drive 8">
         <div class="disk-empty">
-          <p class="disk-title">Drop a .d64, .prg, .t64 or .crt file here</p>
+          <p class="disk-title">Drop a .d64, .prg, .t64, .crt or .zip file here</p>
           <button type="button" data-action="choose">Choose file...</button>
         </div>
         <div class="disk-loaded">
@@ -58,6 +58,7 @@
           </span>
         </div>
         <p class="save-hint">Saving games needs the Accurate drive.</p>
+        <p class="zip-files" hidden>In this zip: <span class="zip-buttons"></span></p>
         <p class="cart-slot" hidden>
           Cartridge: <span class="cart-name"></span>
           <button type="button" data-action="remove-cart">Remove</button>
@@ -82,7 +83,7 @@
             <span class="disk-hint">or type <code>LOAD"*",8,1</code>, Return, then <code>RUN</code></span>
           </span>
         </div>
-        <input type="file" accept=".d64,.prg,.t64,.crt,.c64state" hidden />
+        <input type="file" accept=".d64,.prg,.t64,.crt,.zip,.c64state" hidden />
       </section>
 
       <section id="controls" class="controls" aria-label="Controllers">
