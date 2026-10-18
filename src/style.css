@@ -1,0 +1,276 @@
+:root {
+  --screen-width: min(96vw, calc(72vh * 384 / 272));
+  --accent: #7c70da;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #111;
+  color: #888;
+  font-family: system-ui, sans-serif;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  box-sizing: border-box;
+}
+
+#screen {
+  width: var(--screen-width);
+  aspect-ratio: 384 / 272;
+  image-rendering: pixelated;
+  outline: none;
+}
+
+#status {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Controls */
+
+.controls {
+  width: var(--screen-width);
+  box-sizing: border-box;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.5rem;
+}
+
+.controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.controls select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #555;
+  border-radius: 5px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+}
+
+.controls input[type='range'] {
+  width: 6rem;
+  accent-color: var(--accent);
+}
+
+.sound-hint {
+  color: #c9a227;
+}
+
+.controls-hint {
+  margin: 0.5rem 0 0;
+  color: #777;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Disk panel */
+
+.disk-panel {
+  width: var(--screen-width);
+  box-sizing: border-box;
+  padding: 1rem 1.25rem;
+  border: 2px dashed #555;
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ccc;
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.disk-panel p {
+  margin: 0;
+}
+
+.disk-empty,
+.disk-loaded {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.disk-panel[data-state='empty'] .disk-empty,
+.disk-panel[data-state='loaded'] .disk-loaded {
+  display: flex;
+}
+
+.disk-panel[data-state='loaded'] {
+  border-style: solid;
+  border-color: #3d3d3d;
+}
+
+.disk-title {
+  font-size: 1.05rem;
+  color: #eee;
+}
+
+.disk-file {
+  color: #888;
+}
+
+.autostart {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.disk-hint {
+  color: #999;
+}
+
+.disk-hint code {
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.disk-tip {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.disk-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.disk-panel button {
+  padding: 0.45rem 1rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.disk-panel button:hover,
+.disk-panel button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.disk-drop-hint {
+  display: none;
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.disk-panel.drag-over {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #24213d;
+}
+
+.disk-panel.drag-over .disk-empty,
+.disk-panel.drag-over .disk-loaded {
+  display: none;
+}
+
+.disk-panel.drag-over .disk-drop-hint {
+  display: block;
+}
+
+.disk-drive {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.disk-drive label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.disk-drive select {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid #555;
+  border-radius: 5px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+}
+
+.cart-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+  color: #eee;
+}
+
+.disk-panel .cart-slot:not([hidden]) {
+  margin-top: 0.75rem;
+}
+
+.cart-slot[hidden],
+.disk-panel.drag-over .cart-slot {
+  display: none;
+}
+
+.cart-name {
+  color: #9ad284;
+}
+
+.drive-led {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #3a1010;
+  box-shadow: inset 0 0 2px #000;
+}
+
+.drive-led.on {
+  background: #ff3b30;
+  box-shadow: 0 0 6px #ff3b30;
+}
+
+.disk-panel.drag-over .disk-drive {
+  display: none;
+}
+
+/* The "answer N" advice is only needed when the virtual drive can't run fast loaders. */
+.disk-panel[data-drive-mode='accurate'] .disk-tip {
+  display: none;
+}
+
+.disk-message:not(:empty) {
+  margin-top: 0.6rem;
+  color: #ff8a80;
+  font-size: 0.9rem;
+}
+
+.disk-note:not(:empty) {
+  margin-top: 0.6rem;
+  color: #c9a227;
+  font-size: 0.85rem;
+}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>C64</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <canvas id="screen" width="384" height="272" tabindex="0"></canvas>
+
+      <section id="disk-panel" class="disk-panel" data-state="empty" aria-label="Disk drive 8">
+        <div class="disk-empty">
+          <p class="disk-title">Drop a .d64, .prg, .t64 or .crt file here</p>
+          <button type="button" data-action="choose">Choose file...</button>
+        </div>
+        <div class="disk-loaded">
+          <p class="disk-title">
+            <span class="disk-name"></span>
+            <span class="disk-file"></span>
+          </p>
+          <p class="disk-tip">Infocom games: answer <strong>N</strong> when asked about a 1541 drive.</p>
+          <div class="disk-actions">
+            <button type="button" data-action="choose">Change disk</button>
+            <button type="button" data-action="eject">Eject</button>
+            <button type="button" data-action="reset">Reset C64</button>
+          </div>
+        </div>
+        <p class="cart-slot" hidden>
+          Cartridge: <span class="cart-name"></span>
+          <button type="button" data-action="remove-cart">Remove</button>
+        </p>
+        <p class="disk-drop-hint">Release to insert</p>
+        <p class="disk-message" role="status"></p>
+        <p class="disk-note"></p>
+        <div class="disk-drive">
+          <span class="drive-led" title="Drive activity"></span>
+          <label>
+            Drive
+            <select name="drive-mode">
+              <option value="accurate">Accurate (real 1541)</option>
+              <option value="fast">Fast (virtual)</option>
+            </select>
+          </label>
+          <label><input type="checkbox" name="warp" checked /> Warp while loading</label>
+          <span class="autostart">
+            <label title="When a disk is inserted at the READY prompt, type LOAD&quot;*&quot;,8,1 and RUN">
+              <input type="checkbox" name="autostart" checked /> Autostart
+            </label>
+            <span class="disk-hint">or type <code>LOAD"*",8,1</code>, Return, then <code>RUN</code></span>
+          </span>
+        </div>
+        <input type="file" accept=".d64,.prg,.t64,.crt" hidden />
+      </section>
+
+      <section id="controls" class="controls" aria-label="Controllers">
+        <div class="controls-row">
+          <label>
+            Joystick in
+            <select name="joystick-port">
+              <option value="2" selected>Port 2</option>
+              <option value="1">Port 1</option>
+            </select>
+          </label>
+          <label><input type="checkbox" name="arrow-joystick" /> Arrow keys + Space are the joystick</label>
+          <label>
+            Mouse (1351)
+            <select name="mouse-port">
+              <option value="0" selected>Off</option>
+              <option value="1">Port 1</option>
+              <option value="2">Port 2</option>
+            </select>
+          </label>
+          <label><input type="checkbox" name="sound" checked /> Sound</label>
+          <label>
+            Volume
+            <input type="range" name="volume" min="0" max="1" step="0.05" value="0.8" />
+          </label>
+          <span class="sound-hint" hidden>Click or press a key to start sound</span>
+        </div>
+        <p class="controls-hint">
+          Numpad 8 4 6 2 + 0 always work as the joystick, and so does a gamepad. With the mouse on, click the screen
+          to capture it; Esc releases it.
+        </p>
+      </section>
+
+      <p id="status">Loading ROMs...</p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

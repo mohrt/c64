@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.DS_Store
+
+# ROM files are never committed (Open ROMs: npm run fetch:roms).
+public/roms/
+
+# Files supplied locally
+disks/
+tests/fixtures/dormann/
