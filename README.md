@@ -4,7 +4,7 @@ A Commodore 64 emulator written from scratch in TypeScript: 6510 CPU, VIC-II, SI
 
 ## Keys
 
-Esc is RUN/STOP, Tab is CTRL, Alt is the Commodore key, Page Up is RESTORE and Caps Lock is SHIFT LOCK. Characters type as labelled on your keyboard (`"` gives `"` even though the C64 has it on Shift+2), F1-F8 are the function keys, and the numpad is joystick 1. Settings are remembered between visits.
+Esc is RUN/STOP, Tab is CTRL, Alt is the Commodore key, Page Up is RESTORE and Caps Lock is SHIFT LOCK. Characters type as labelled on your keyboard (`"` gives `"` even though the C64 has it on Shift+2), and F1-F8 are the function keys. Joysticks are set per port under the screen: a gamepad, and optionally the numpad, the arrow keys + Space or W A S D + F (keys used as a joystick don't type on the C64). Settings are remembered between visits.
 
 ## ROMs and games
 
