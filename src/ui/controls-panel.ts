@@ -3,6 +3,8 @@ export type PortNumber = 1 | 2;
 export interface ControlsPanelCallbacks {
   onJoystickPort(port: PortNumber): void;
   onArrowKeys(enabled: boolean): void;
+  /** W A S D + F as a second joystick, in the other port. */
+  onSecondJoystickKeys(enabled: boolean): void;
   /** `null` unplugs the mouse. */
   onMousePort(port: PortNumber | null): void;
   onSound(enabled: boolean): void;
@@ -31,6 +33,7 @@ const toPort = (value: string): PortNumber | null => (value === '1' ? 1 : value 
 export function attachControlsPanel(root: HTMLElement, callbacks: ControlsPanelCallbacks): ControlsPanel {
   const joystickPort = requireField<HTMLSelectElement>(root, '[name="joystick-port"]');
   const arrowKeys = requireField<HTMLInputElement>(root, '[name="arrow-joystick"]');
+  const secondJoystick = requireField<HTMLInputElement>(root, '[name="second-joystick"]');
   const mousePort = requireField<HTMLSelectElement>(root, '[name="mouse-port"]');
   const sound = requireField<HTMLInputElement>(root, '[name="sound"]');
   const volume = requireField<HTMLInputElement>(root, '[name="volume"]');
@@ -42,6 +45,7 @@ export function attachControlsPanel(root: HTMLElement, callbacks: ControlsPanelC
   };
   joystickPort.addEventListener('change', thenRefocus(() => callbacks.onJoystickPort(toPort(joystickPort.value) ?? 2)));
   arrowKeys.addEventListener('change', thenRefocus(() => callbacks.onArrowKeys(arrowKeys.checked)));
+  secondJoystick.addEventListener('change', thenRefocus(() => callbacks.onSecondJoystickKeys(secondJoystick.checked)));
   mousePort.addEventListener('change', thenRefocus(() => callbacks.onMousePort(toPort(mousePort.value))));
   sound.addEventListener('change', thenRefocus(() => callbacks.onSound(sound.checked)));
   // The slider keeps focus while dragged and hands it back when released.
@@ -51,6 +55,7 @@ export function attachControlsPanel(root: HTMLElement, callbacks: ControlsPanelC
   // Apply the initial selections (browsers may restore form state on reload).
   callbacks.onJoystickPort(toPort(joystickPort.value) ?? 2);
   callbacks.onArrowKeys(arrowKeys.checked);
+  callbacks.onSecondJoystickKeys(secondJoystick.checked);
   callbacks.onMousePort(toPort(mousePort.value));
   callbacks.onSound(sound.checked);
   callbacks.onVolume(Number(volume.value));

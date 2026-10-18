@@ -1,10 +1,10 @@
 import { Joystick, type ControlPort } from './control-port';
-import { MIN_KEY_HOLD_MS } from './keyboard';
+import { MIN_KEY_HOLD_MS, type KeyInterceptor } from './keyboard';
 
 const { Up, Down, Left, Right, Fire } = Joystick;
 
-/** The numeric keypad is always a joystick; it has no other use on a C64. */
-const NUMPAD_KEYS: Record<string, number> = {
+/** The numeric keypad: always a joystick, since it has no other use on a C64. */
+export const NUMPAD_KEYS: Record<string, number> = {
   Numpad8: Up,
   Numpad2: Down,
   Numpad4: Left,
@@ -18,7 +18,7 @@ const NUMPAD_KEYS: Record<string, number> = {
 };
 
 /** Arrow keys + Space, used only when enabled because they are also C64 keys. */
-const ARROW_KEYS: Record<string, number> = {
+export const ARROW_KEYS: Record<string, number> = {
   ArrowUp: Up,
   ArrowDown: Down,
   ArrowLeft: Left,
@@ -26,8 +26,15 @@ const ARROW_KEYS: Record<string, number> = {
   Space: Fire,
 };
 
-const KEYBOARD_SOURCE = 'keyboard';
-const GAMEPAD_SOURCE = 'gamepad';
+/** W A S D + F for a second player, used only when enabled because they are also C64 keys. */
+export const WASD_KEYS: Record<string, number> = {
+  KeyW: Up,
+  KeyS: Down,
+  KeyA: Left,
+  KeyD: Right,
+  KeyF: Fire,
+};
+
 const AXIS_THRESHOLD = 0.5;
 
 // Standard gamepad mapping (https://w3c.github.io/gamepad/#remapping)
@@ -38,25 +45,34 @@ const DPAD_DOWN = 13;
 const DPAD_LEFT = 14;
 const DPAD_RIGHT = 15;
 
-/** Drives a control port from keyboard keys. */
-export class KeyboardJoystick {
-  arrowKeysEnabled = false;
-
+/** Drives a control port from a set of keyboard keys. */
+export class KeyboardJoystick implements KeyInterceptor {
+  private keys: Record<string, number> = {};
   private readonly held = new Map<string, number>();
   private readonly pressedAt = new Map<string, number>();
   private readonly pendingReleases = new Map<string, ReturnType<typeof setTimeout>>();
 
-  constructor(private port: ControlPort) {}
+  /** `source` names this input on the port, so several can drive it at once. */
+  constructor(
+    private port: ControlPort,
+    private readonly source: string,
+  ) {}
 
   setPort(port: ControlPort): void {
-    this.port.set(KEYBOARD_SOURCE, 0);
+    this.port.set(this.source, 0);
     this.port = port;
     this.update();
   }
 
+  /** Chooses which keys act as this joystick (an empty map turns it off). */
+  setKeys(keys: Record<string, number>): void {
+    this.releaseAll();
+    this.keys = keys;
+  }
+
   /** Handles joystick keys; returns false for keys that belong to the C64 keyboard. */
   handle(event: KeyboardEvent, down: boolean): boolean {
-    const bits = NUMPAD_KEYS[event.code] ?? (this.arrowKeysEnabled ? ARROW_KEYS[event.code] : undefined);
+    const bits = this.keys[event.code];
     if (bits === undefined) return false;
     const code = event.code;
 
@@ -97,26 +113,38 @@ export class KeyboardJoystick {
   private update(): void {
     let bits = 0;
     for (const value of this.held.values()) bits |= value;
-    this.port.set(KEYBOARD_SOURCE, bits);
+    this.port.set(this.source, bits);
   }
 }
 
-/** Drives a control port from any connected gamepad (D-pad or left stick, A/B to fire). */
+/** Lets several key interceptors (e.g. two keyboard joysticks) look at each key in turn. */
+export function combineInterceptors(...interceptors: KeyInterceptor[]): KeyInterceptor {
+  return {
+    handle: (event, down) => interceptors.some((interceptor) => interceptor.handle(event, down)),
+    releaseAll: () => interceptors.forEach((interceptor) => interceptor.releaseAll()),
+  };
+}
+
+/** Drives a control port from one gamepad (D-pad or left stick, A/B to fire). */
 export class GamepadJoystick {
-  constructor(private port: ControlPort) {}
+  private readonly source: string;
+
+  constructor(
+    private port: ControlPort,
+    private readonly padIndex: number,
+  ) {
+    this.source = `gamepad-${padIndex}`;
+  }
 
   setPort(port: ControlPort): void {
-    this.port.set(GAMEPAD_SOURCE, 0);
+    this.port.set(this.source, 0);
     this.port = port;
   }
 
   /** Gamepads have no events for button state, so this runs once per animation frame. */
   poll(): void {
-    let bits = 0;
-    for (const pad of navigator.getGamepads?.() ?? []) {
-      if (pad) bits |= gamepadBits(pad);
-    }
-    this.port.set(GAMEPAD_SOURCE, bits);
+    const pad = navigator.getGamepads?.()[this.padIndex];
+    this.port.set(this.source, pad ? gamepadBits(pad) : 0);
   }
 }
 
