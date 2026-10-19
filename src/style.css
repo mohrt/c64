@@ -82,8 +82,28 @@ main {
 }
 
 .site-links a:hover,
-.site-links a:focus-visible {
+.site-links a:focus-visible,
+.emulator-links a:hover,
+.emulator-links a:focus-visible {
   text-decoration: underline;
+}
+
+.emulator-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+
+.emulator-links a {
+  color: #a9a2ee;
+  text-decoration: none;
+}
+
+.emulator-links strong {
+  color: #ddd;
+  font-weight: 600;
 }
 
 /* Toolbar */
