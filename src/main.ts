@@ -74,7 +74,7 @@ const WARP_SLICE_CYCLES = 20_000;
 
 const DRIVE_ROM_SIZE = 0x4000;
 
-/** System ROMs are used when the site provides them; otherwise the Open ROMs. */
+/** System ROMs are used when present; otherwise the Open ROMs. */
 const SYSTEM_ROM_DIR = 'roms/system/';
 const OPEN_ROM_DIR = 'roms/';
 
@@ -475,8 +475,8 @@ async function main(): Promise<void> {
     if (!romSet.driveRom) {
       diskPanel.setNote(
         romSet.virtualDriveWorks
-          ? 'Games with fast loaders need the 1541 drive ROM (roms/system/dos1541.rom).'
-          : 'Disk loading needs the system ROMs in roms/system/.',
+          ? 'Games with fast loaders need the 1541 drive ROM.'
+          : 'Disk loading needs the C64 system ROMs.',
       );
     }
 
