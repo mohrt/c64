@@ -26,10 +26,14 @@ export class MemoryStore<T> implements KeyValueStore<T> {
   }
 }
 
-const DATABASE_NAME = 'c64-emulator';
-const DATABASE_VERSION = 2;
-export const STORE_NAMES = ['diskSaves', 'saveDisks', 'saveStates', 'systemRoms'] as const;
-export type StoreName = (typeof STORE_NAMES)[number];
+/** Saves, in the database earlier versions of the page created. */
+const SAVES_DATABASE = { name: 'c64-emulator', stores: ['diskSaves', 'saveDisks', 'saveStates'] } as const;
+/** The user's ROMs, in their own database so adding them didn't mean upgrading the saves database. */
+const ROMS_DATABASE = { name: 'c64-system-roms', stores: ['systemRoms'] } as const;
+export type StoreName = (typeof SAVES_DATABASE.stores)[number] | (typeof ROMS_DATABASE.stores)[number];
+
+/** How long opening storage may take before the page says it's waiting. */
+const SLOW_OPEN_MS = 3000;
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -67,27 +71,51 @@ class IndexedDbStore<T> implements KeyValueStore<T> {
   }
 }
 
-/**
- * Opens the browser database. Asks the browser to keep the data even under
- * storage pressure; users can still clear it with the site's data.
- * `onBlocked` is called when another tab running an older version holds the
- * database open, which stops it being upgraded until that tab is closed.
- */
-export async function openBrowserStores(onBlocked?: () => void): Promise<Record<StoreName, KeyValueStore<unknown>>> {
-  void navigator.storage?.persist?.();
-  const open = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
+function openAt(name: string, storeNames: readonly string[], version?: number): Promise<IDBDatabase> {
+  const open = version === undefined ? indexedDB.open(name) : indexedDB.open(name, version);
   open.onupgradeneeded = () => {
-    for (const name of STORE_NAMES) {
-      if (!open.result.objectStoreNames.contains(name)) open.result.createObjectStore(name);
+    for (const store of storeNames) {
+      if (!open.result.objectStoreNames.contains(store)) open.result.createObjectStore(store);
     }
   };
-  open.onblocked = () => onBlocked?.();
-  const db = await request(open);
+  return request(open);
+}
+
+/**
+ * Opens a database at whatever version it already has, so it never waits on an
+ * upgrade that a tab running an older version of the page could block. Only
+ * upgrades when a store is missing.
+ */
+async function openDatabase(name: string, storeNames: readonly string[]): Promise<IDBDatabase> {
+  let db = await openAt(name, storeNames);
+  if (!storeNames.every((store) => db.objectStoreNames.contains(store))) {
+    const version = db.version + 1;
+    db.close();
+    db = await openAt(name, storeNames, version);
+  }
   // Let a newer version of the page, opened in another tab, upgrade the database.
   db.onversionchange = () => db.close();
-  const stores = {} as Record<StoreName, KeyValueStore<unknown>>;
-  for (const name of STORE_NAMES) stores[name] = new IndexedDbStore(db, name);
-  return stores;
+  return db;
+}
+
+/**
+ * Opens the browser databases. Asks the browser to keep the data even under
+ * storage pressure; users can still clear it with the site's data.
+ * `onSlow` is called if opening takes unusually long (another tab holding up the browser's storage).
+ */
+export async function openBrowserStores(onSlow?: () => void): Promise<Record<StoreName, KeyValueStore<unknown>>> {
+  void navigator.storage?.persist?.();
+  const slowTimer = setTimeout(() => onSlow?.(), SLOW_OPEN_MS);
+  try {
+    const stores = {} as Record<StoreName, KeyValueStore<unknown>>;
+    for (const { name, stores: storeNames } of [SAVES_DATABASE, ROMS_DATABASE]) {
+      const db = await openDatabase(name, storeNames);
+      for (const store of storeNames) stores[store] = new IndexedDbStore(db, store);
+    }
+    return stores;
+  } finally {
+    clearTimeout(slowTimer);
+  }
 }
 
 /** In-memory stores, used when the browser has no IndexedDB (and in tests). */

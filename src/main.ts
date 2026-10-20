@@ -180,7 +180,7 @@ async function main(): Promise<void> {
     let storageWorks = true;
     const stores = await openBrowserStores(() => {
       status.textContent =
-        'Another tab has an older version of this C64 open. Close it (or reload it) and this page will carry on.';
+        "Waiting for the browser's storage: if this C64 is open in another tab, close or reload that tab.";
     }).catch((error: unknown) => {
       console.warn('Browser storage is unavailable; saves will last until the page is closed.', error);
       storageWorks = false;
