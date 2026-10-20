@@ -32,8 +32,9 @@ import {
 } from './io/joystick-input';
 import { BrowserKeyboard } from './io/keyboard';
 import { Mouse1351 } from './io/mouse';
-import type { Roms } from './memory/bus';
 import { Screen } from './render/screen';
+import { SystemRomStore, hasRequiredRoms, machineRoms, type StoredRom, type SystemRoms } from './roms/system-roms';
+import { askForRoms } from './ui/rom-setup';
 import { attachControlsPanel, type PortNumber } from './ui/controls-panel';
 import { DiskPanel, type InsertedMedia } from './ui/disk-panel';
 import { Settings } from './ui/settings';
@@ -59,53 +60,14 @@ const REMEMBERED_SETTINGS = [
 /** Longest gap we catch up on, so a backgrounded tab doesn't run a burst of frames. */
 const MAX_CATCH_UP_MS = 100;
 
-interface RomSet {
-  label: string;
-  roms: Roms;
-  /** Whether the virtual (fast) drive works with this KERNAL; it relies on standard KERNAL routines. */
-  virtualDriveWorks: boolean;
-  /** The 1541 DOS ROM, needed for accurate drive emulation; null if not supplied. */
-  driveRom: Uint8Array | null;
-}
-
 /** While the drive motor runs in warp mode, each animation frame emulates this long. */
 const WARP_BUDGET_MS = 12;
 const WARP_SLICE_CYCLES = 20_000;
 
-const DRIVE_ROM_SIZE = 0x4000;
-
-/** System ROMs are used when present; otherwise the Open ROMs. */
-const SYSTEM_ROM_DIR = 'roms/system/';
-const OPEN_ROM_DIR = 'roms/';
-
-async function loadRom(path: string, expectedSize: number): Promise<Uint8Array> {
-  const response = await fetch(`${import.meta.env.BASE_URL}${path}`);
-  if (!response.ok) throw new Error(`Could not load ROM ${path} (HTTP ${response.status})`);
-  const data = new Uint8Array(await response.arrayBuffer());
-  // The size check also rejects the dev server's index.html fallback for missing files.
-  if (data.length !== expectedSize) {
-    throw new Error(`ROM ${path} is ${data.length} bytes, expected ${expectedSize}`);
-  }
-  return data;
-}
-
-async function loadRomsFrom(dir: string): Promise<Roms> {
-  const [basic, kernal, chargen] = await Promise.all([
-    loadRom(`${dir}basic.rom`, 0x2000),
-    loadRom(`${dir}kernal.rom`, 0x2000),
-    loadRom(`${dir}chargen.rom`, 0x1000),
-  ]);
-  return { basic, kernal, chargen };
-}
-
-/** BASIC and KERNAL must come from the same set, so it's all three system ROMs or none. */
-async function loadRomSet(): Promise<RomSet> {
-  const driveRom = await loadRom(`${SYSTEM_ROM_DIR}dos1541.rom`, DRIVE_ROM_SIZE).catch(() => null);
-  try {
-    return { label: 'System ROMs', roms: await loadRomsFrom(SYSTEM_ROM_DIR), virtualDriveWorks: true, driveRom };
-  } catch {
-    return { label: 'MEGA65 Open ROMs', roms: await loadRomsFrom(OPEN_ROM_DIR), virtualDriveWorks: false, driveRom };
-  }
+function describeRoms(roms: SystemRoms): string {
+  return roms.drive
+    ? 'System ROMs: BASIC, KERNAL, characters and 1541 drive.'
+    : 'System ROMs: BASIC, KERNAL and characters (no 1541 drive ROM).';
 }
 
 type Media =
@@ -210,12 +172,33 @@ async function main(): Promise<void> {
   const controlsRoot = requireElement<HTMLElement>('#controls');
   const toolbarRoot = requireElement<HTMLElement>('#toolbar');
   const screenFrame = requireElement<HTMLElement>('.screen-frame');
+  const romSetup = requireElement<HTMLElement>('#rom-setup');
+  const romLine = requireElement<HTMLElement>('.rom-line');
 
   try {
-    const romSet = await loadRomSet();
-    const c64 = new C64(romSet.roms, romSet.driveRom ?? undefined);
+    // Games' saves and the user's ROMs live in browser storage; the user's disk images are never modified.
+    let storageWorks = true;
+    const stores = await openBrowserStores().catch((error: unknown) => {
+      console.warn('Browser storage is unavailable; saves will last until the page is closed.', error);
+      storageWorks = false;
+      return memoryStores();
+    });
+    const romStore = new SystemRomStore(stores.systemRoms as KeyValueStore<StoredRom>);
+    if (!storageWorks) {
+      requireElement<HTMLElement>('.rom-storage-note').textContent =
+        "This browser isn't letting the page store files, so the ROMs will be forgotten when you close it.";
+    }
+    let systemRoms = await romStore.load();
+    if (!hasRequiredRoms(systemRoms)) {
+      status.textContent = 'Load the system ROMs above to switch the C64 on.';
+      systemRoms = (await askForRoms(romSetup, romStore, systemRoms)) ?? systemRoms;
+    }
+    const driveRom = systemRoms.drive?.data ?? null;
+    const c64 = new C64(machineRoms(systemRoms), driveRom ?? undefined);
     let warp = true;
     let paused = false;
+    /** While the ROM setup is open over the running C64. */
+    let changingRoms = false;
     const audio = await AudioOutput.create().catch((error: unknown) => {
       console.warn('Audio is unavailable:', error);
       return null;
@@ -279,11 +262,6 @@ async function main(): Promise<void> {
     const autostart = new Autostart(c64);
     let autostartEnabled = true;
 
-    // Games' saves live in browser storage; the user's disk images are never modified.
-    const stores = await openBrowserStores().catch((error: unknown) => {
-      console.warn('Browser storage is unavailable; saves will last until the page is closed.', error);
-      return memoryStores();
-    });
     const diskSaves = new DiskSaves(
       stores.diskSaves as KeyValueStore<DiskSaveRecord>,
       stores.saveDisks as KeyValueStore<SaveDiskRecord>,
@@ -472,18 +450,34 @@ async function main(): Promise<void> {
           'press Reset C64 and try again. For Infocom games, answering N to the 1541 question also works.',
       );
     };
-    if (!romSet.driveRom) {
-      diskPanel.setNote(
-        romSet.virtualDriveWorks
-          ? 'Games with fast loaders need the 1541 drive ROM.'
-          : 'Disk loading needs the C64 system ROMs.',
-      );
+    if (!driveRom) {
+      diskPanel.setNote('Games with fast loaders need the 1541 drive ROM.');
+      requireElement<HTMLElement>('.drive-rom-prompt').hidden = false;
     }
+    requireElement<HTMLElement>('.rom-summary').textContent = describeRoms(systemRoms);
+    romLine.hidden = false;
+    /** Shows the ROM setup over the paused C64; new ROMs take effect by reloading the page. */
+    const changeRoms = async () => {
+      if (changingRoms) return;
+      changingRoms = true;
+      audio?.flush();
+      const updated = await askForRoms(romSetup, romStore, await romStore.load(), { whileRunning: true });
+      changingRoms = false;
+      if (!updated) {
+        canvas.focus();
+        return;
+      }
+      await persistDisk();
+      location.reload();
+    };
+    document
+      .querySelectorAll<HTMLButtonElement>('[data-action="change-roms"], [data-action="add-drive-rom"]')
+      .forEach((button) => button.addEventListener('click', () => void changeRoms()));
 
     canvas.focus();
-    status.textContent = `${romSet.label}. Esc = RUN/STOP, Tab = CTRL, Alt = C=, PgUp = RESTORE`;
+    status.textContent = 'Esc = RUN/STOP, Tab = CTRL, Alt = C=, PgUp = RESTORE';
     startLoop(c64, screen, {
-      paused: () => paused,
+      paused: () => paused || changingRoms,
       gamepads,
       warp: () => warp,
       onDriveLed: (on) => diskPanel.setLed(on),

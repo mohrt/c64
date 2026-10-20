@@ -27,8 +27,8 @@ export class MemoryStore<T> implements KeyValueStore<T> {
 }
 
 const DATABASE_NAME = 'c64-emulator';
-const DATABASE_VERSION = 1;
-export const STORE_NAMES = ['diskSaves', 'saveDisks', 'saveStates'] as const;
+const DATABASE_VERSION = 2;
+export const STORE_NAMES = ['diskSaves', 'saveDisks', 'saveStates', 'systemRoms'] as const;
 export type StoreName = (typeof STORE_NAMES)[number];
 
 function request<T>(req: IDBRequest<T>): Promise<T> {
@@ -87,5 +87,10 @@ export async function openBrowserStores(): Promise<Record<StoreName, KeyValueSto
 
 /** In-memory stores, used when the browser has no IndexedDB (and in tests). */
 export function memoryStores(): Record<StoreName, KeyValueStore<unknown>> {
-  return { diskSaves: new MemoryStore(), saveDisks: new MemoryStore(), saveStates: new MemoryStore() };
+  return {
+    diskSaves: new MemoryStore(),
+    saveDisks: new MemoryStore(),
+    saveStates: new MemoryStore(),
+    systemRoms: new MemoryStore(),
+  };
 }

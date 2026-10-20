@@ -12,8 +12,8 @@ Esc is RUN/STOP, Tab is CTRL, Alt is the Commodore key, Page Up is RESTORE and C
 
 No ROM or game files are included in this repository.
 
-- **Open ROMs** (MEGA65, LGPL) are downloaded with `npm run fetch:roms`. They boot to BASIC.
-- **System ROMs**: for the full machine, download the C64 system ROMs and the 1541 drive ROM yourself and place them in `public/roms/system/` as `basic.rom`, `kernal.rom`, `chargen.rom` and `dos1541.rom`. When present they are used instead of the Open ROMs, and the 1541 ROM enables accurate drive emulation (needed for most games with fast loaders).
+- **System ROMs**: the Commodore ROMs are still under copyright, so the site never serves them. On the first visit the page shows a setup panel in place of the screen asking for the BASIC (8K), KERNAL (8K) and character (4K) ROMs, plus the recommended 1541 drive ROM (16K), which enables accurate drive emulation (needed for most games with fast loaders). Files can be chosen or dropped, several at once or in a `.zip`. They are kept in the browser's IndexedDB (with persistent storage requested), so later visits start straight away. **System ROMs...** in the toolbar (or **Add the 1541 drive ROM...** in the disk panel when it's missing) reopens the panel over the paused C64 to add, replace or forget ROMs; **Back to the C64** leaves without restarting.
+- **Open ROMs** (MEGA65, LGPL) are downloaded with `npm run fetch:roms`; only the tests use them now.
 - **Games**: download disk, tape or cartridge images yourself and drop them onto the page. They stay in your browser and are never uploaded.
 - **Free games**: `npm run fetch:games` downloads the freely distributable games listed in `scripts/games-catalog.json` (each with its credit, licence and checksum) into `public/games/`, where they appear in a "Free games" picker. To offer other games, list them in `public/games/index.json` the same way: `{ "games": [{ "title": "Some Game", "file": "some-game.d64" }] }`.
 

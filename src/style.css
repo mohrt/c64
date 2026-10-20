@@ -70,6 +70,217 @@ main {
   font-size: 0.85rem;
 }
 
+/* ROM setup: shown in place of the screen until the system ROMs are loaded */
+
+body.needs-roms #screen,
+body.needs-roms .toolbar,
+body.needs-roms .disk-panel,
+body.needs-roms .controls {
+  display: none;
+}
+
+.rom-setup {
+  width: var(--screen-width);
+  min-height: calc(var(--screen-width) / var(--screen-aspect));
+  box-sizing: border-box;
+  padding: 1.5rem 1.75rem;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: #1a1a1a;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.rom-setup[hidden] {
+  display: none;
+}
+
+.rom-setup p {
+  margin: 0;
+}
+
+.rom-setup h1 {
+  margin: 0 0 0.5rem;
+  color: #fff;
+  font-size: 1.4rem;
+}
+
+.rom-setup-lead {
+  color: #bbb;
+  line-height: 1.45;
+}
+
+.rom-setup code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 0.85em;
+}
+
+.rom-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rom-list li {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #3d3d3d;
+  border-left: 4px solid #ff8a80;
+  border-radius: 6px;
+  background: #202020;
+}
+
+.rom-list li.optional {
+  border-left-color: #c9a227;
+}
+
+.rom-list li[data-state='loaded'] {
+  border-left-color: #9ad284;
+}
+
+.rom-list li[data-state='warning'] {
+  border-left-color: #c9a227;
+}
+
+.rom-heading strong {
+  color: #eee;
+  font-size: 1rem;
+}
+
+.rom-need {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  background: #3d2424;
+  color: #ff8a80;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.optional .rom-need {
+  background: #3d3524;
+  color: #c9a227;
+}
+
+.rom-detail,
+.rom-names {
+  color: #aaa;
+  font-size: 0.85rem;
+}
+
+.rom-status {
+  color: #ff8a80;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.optional[data-state='missing'] .rom-status,
+[data-state='warning'] .rom-status {
+  color: #c9a227;
+}
+
+[data-state='loaded'] .rom-status {
+  color: #9ad284;
+}
+
+.rom-tip {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.rom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.rom-setup button,
+.rom-line button {
+  padding: 0.5rem 1.1rem;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: #2a2a2a;
+  color: #eee;
+  font: inherit;
+  cursor: pointer;
+}
+
+.rom-line button {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.rom-setup button.primary,
+.rom-setup button[data-action='start']:not(:disabled) {
+  border-color: var(--accent);
+  background: #3b356b;
+  color: #fff;
+}
+
+.rom-setup button:hover:not(:disabled),
+.rom-setup button:focus-visible,
+.rom-line button:hover,
+.rom-line button:focus-visible {
+  border-color: #a9a2ee;
+  outline: none;
+}
+
+.rom-setup button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.rom-message:not(:empty) {
+  margin-top: 0.75rem;
+  color: #ff8a80;
+}
+
+.rom-storage-note:not(:empty) {
+  margin-top: 0.75rem;
+  color: #c9a227;
+}
+
+.rom-drop-hint {
+  display: none;
+  padding: 2rem 0;
+  color: #fff;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.rom-setup.drag-over {
+  border-style: solid;
+  background: #24213d;
+}
+
+.rom-setup.drag-over > :not(.rom-drop-hint) {
+  display: none;
+}
+
+.rom-setup.drag-over .rom-drop-hint {
+  display: block;
+}
+
+.rom-line {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.rom-line[hidden] {
+  display: none;
+}
+
 .site-links {
   display: flex;
   gap: 1.25rem;
@@ -509,4 +720,13 @@ main {
   margin-top: 0.6rem;
   color: #c9a227;
   font-size: 0.85rem;
+}
+
+.drive-rom-prompt {
+  margin-top: 0.5rem !important;
+}
+
+.drive-rom-prompt[hidden],
+.disk-panel.drag-over .drive-rom-prompt {
+  display: none;
 }

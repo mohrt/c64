@@ -33,6 +33,8 @@ jobs:
           if [ -n "$SITE_ASSETS" ]; then
             echo "$SITE_ASSETS" | base64 --decode | tar xz -C public
           fi
+      # Users load the copyrighted Commodore ROMs into their own browser; the site never serves them.
+      - run: rm -rf public/roms/system
 
       - run: npm run build
       - uses: actions/upload-pages-artifact@v5
