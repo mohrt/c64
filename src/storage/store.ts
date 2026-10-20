@@ -70,8 +70,10 @@ class IndexedDbStore<T> implements KeyValueStore<T> {
 /**
  * Opens the browser database. Asks the browser to keep the data even under
  * storage pressure; users can still clear it with the site's data.
+ * `onBlocked` is called when another tab running an older version holds the
+ * database open, which stops it being upgraded until that tab is closed.
  */
-export async function openBrowserStores(): Promise<Record<StoreName, KeyValueStore<unknown>>> {
+export async function openBrowserStores(onBlocked?: () => void): Promise<Record<StoreName, KeyValueStore<unknown>>> {
   void navigator.storage?.persist?.();
   const open = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
   open.onupgradeneeded = () => {
@@ -79,7 +81,10 @@ export async function openBrowserStores(): Promise<Record<StoreName, KeyValueSto
       if (!open.result.objectStoreNames.contains(name)) open.result.createObjectStore(name);
     }
   };
+  open.onblocked = () => onBlocked?.();
   const db = await request(open);
+  // Let a newer version of the page, opened in another tab, upgrade the database.
+  db.onversionchange = () => db.close();
   const stores = {} as Record<StoreName, KeyValueStore<unknown>>;
   for (const name of STORE_NAMES) stores[name] = new IndexedDbStore(db, name);
   return stores;

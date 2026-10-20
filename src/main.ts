@@ -178,7 +178,10 @@ async function main(): Promise<void> {
   try {
     // Games' saves and the user's ROMs live in browser storage; the user's disk images are never modified.
     let storageWorks = true;
-    const stores = await openBrowserStores().catch((error: unknown) => {
+    const stores = await openBrowserStores(() => {
+      status.textContent =
+        'Another tab has an older version of this C64 open. Close it (or reload it) and this page will carry on.';
+    }).catch((error: unknown) => {
       console.warn('Browser storage is unavailable; saves will last until the page is closed.', error);
       storageWorks = false;
       return memoryStores();
