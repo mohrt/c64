@@ -195,6 +195,10 @@ body.needs-roms .controls {
   font-size: 0.85rem;
 }
 
+.rom-tip a {
+  color: #a9a2ee;
+}
+
 .rom-actions {
   display: flex;
   flex-wrap: wrap;
