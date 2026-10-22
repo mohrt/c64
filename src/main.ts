@@ -1,3 +1,4 @@
+import { trackGameLoaded } from './analytics';
 import { AudioOutput } from './audio/audio-output';
 import { Autostart, atReadyPrompt } from './autostart';
 import { C64 } from './c64';
@@ -323,17 +324,26 @@ async function main(): Promise<void> {
       return { kind: 'disk', name: diskLabel, hasSavedChanges };
     };
 
+    /** Inserts a chosen file, or the first usable file in a zip. */
+    const openFile = async (file: File) => {
+      const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      if (!isZip(head) && !file.name.toLowerCase().endsWith('.zip')) return insertFile(file);
+      const files = await usableFilesInZip(new Uint8Array(await file.arrayBuffer()));
+      if (files.length === 0) throw new Error(`${file.name} has no disk, tape, program or cartridge files in it.`);
+      diskPanel.setZipFiles(files, files[0].name);
+      const media = await insertFile(files[0]);
+      return { ...media, fileLabel: `${files[0].name} from ${file.name}` };
+    };
+
     let bundledGames: BundledGame[] = [];
     const diskPanel = new DiskPanel(diskPanelRoot, {
       onGame: (index) => fetchGame(import.meta.env.BASE_URL, bundledGames[index]),
       onFile: async (file) => {
-        const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
-        if (!isZip(head) && !file.name.toLowerCase().endsWith('.zip')) return insertFile(file);
-        const files = await usableFilesInZip(new Uint8Array(await file.arrayBuffer()));
-        if (files.length === 0) throw new Error(`${file.name} has no disk, tape, program or cartridge files in it.`);
-        diskPanel.setZipFiles(files, files[0].name);
-        const media = await insertFile(files[0]);
-        return { ...media, fileLabel: `${files[0].name} from ${file.name}` };
+        const media = await openFile(file);
+        if (media.kind !== 'state') {
+          trackGameLoaded('c64', bundledGames.find((entry) => entry.file.split('/').pop() === file.name)?.title);
+        }
+        return media;
       },
       onEject: () => {
         void persistDisk().then(() => {
